@@ -572,7 +572,7 @@ NoDefDL__loserB_loserDB_harvestProfits_6DR <-
                     costType = "HarvestProfits")
 #--------------- Export figures -----------
 #set figure export path
-path = "figures/GeomPointFigs"
+path = "Figures/GeomPointFigs"
 # Set the dimensions for A4 size in inches
 width <- 8.27
 height <- 11.69
@@ -613,12 +613,16 @@ export_plots_to_pdf(object_names_to_export, path, width, height)
 #SINGLE PLOT EXPORTS
 
 ggsave(DefDL__loserB_loserDB_harvestProfits_6DR, 
-       filename = paste0(path, "//DefDL__loserB_loserDB_harvestProfits_6DR.pdf"),
+       filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_6DR.pdf"),
        width =  width, #in pixels 
        height = height,
        units = "in")
 
-
+ggsave(loserB_loserDB_harvestProfits_6DR, 
+               filename = paste0(path, "/loserB_loserDB_harvestProfits_6DR.pdf"),
+               width =  width, #in pixels 
+               height = height,
+               units = "in")
 
 
 ggsave(NoDefDL__loserB_loserDB_harvestProfits_6DR, 
