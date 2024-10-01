@@ -3,7 +3,7 @@
 
 rm(list = ls())
 
-library(tidyr)
+library(tidyverse)
 library(ggplot2)
 library(data.table)
 library(ggpubr)
@@ -16,35 +16,35 @@ library(grid)
 library(forcats)
 library(gridExtra)
 
-setwd("C:/Users/Gianluca Cerullo/OneDrive - University of Cambridge/PhD/Chapter_4_Borneo/CompleteFolder")
-source('R_code/BuildScenarios/BiolerCodeScenarioConstruction.R')
+
+source('Inputs/FixedScenarioParams.R')
 
 #.....................................
 #notes
 #For birds and dung beetles, we must choose which spp_category we want to plot (i.e. winner/loser/intermediates)
 #for megatrees, there is currently no temporal dimension incorporated (TO DO!). Also, megatrees is not a relative measure. it plots scenario landscape; SL megatrees is a seperate column. 
-#for carbon and profits we must select the discount rate being applied 
+#for carbon and profits we must select the discount rate being applied; and whether we are looking at aboveground carbon only (ACD) or all carbon, including belowground (all)
 #for profits, we must also select which costType we are plotting ("All_costs","HarvestProfits","ProtectionCosts" "CutAndRun"  )
 #.....................................
 
 #read in performance outcomes 
 
-
 #select birds categorised either by my owner winner/loser/int classification...
-birds <- readRDS("R_code/allOutcomesFigure/Data/OG_baseline_birds.rds") %>% unique() %>% rename(bird_grp = spp_category)
+birds <- readRDS("TEMPORARYDATA_TODELETE/OG_baseline_birds.rds") %>% unique() %>% rename(bird_grp = spp_category)
 #or by whether threatened on IUCN red list 
-birds2 <- readRDS("R_code/allOutcomesFigure/Data/OG_baseline_birdsIUCN.rds") %>% unique() %>%  rename(bird_grp = threatened)
+birds2 <- readRDS("TEMPORARYDATA_TODELETE/OG_baseline_birdsIUCN.rds") %>% unique() %>%  rename(bird_grp = threatened)
 
 #join IUCN status and habitat-affinities
 birds <- birds %>% rbind(birds2) 
 
 #read in where old-growth forest is added as the baseline
-dungBeetles <- readRDS("R_code//allOutcomesFigure/Data/OG_baseline_dungBeetles.rds")
-carbon <-  readRDS("R_code/allOutcomesFigure/Data/carbon.rds") #WARNING; AS CURRENTLY EXPORTED, THE UNCERTAINTY (e.g. lwr and upr ACD) have not incoroprated belowground carbon dynamics)
+dungBeetles <- readRDS("TEMPORARYDATA_TODELETE/OG_baseline_dungBeetles.rds")
+
+carbon <-  readRDS("Data/MasterCarbonPerformance2.rds") #WARNING; AS CURRENTLY EXPORTED, THE UNCERTAINTY (e.g. lwr and upr ACD) have not incoroprated belowground carbon dynamics)
 # DO NOT USE OR TRUST THESE. 
 
-megatrees <- readRDS("R_code/allOutcomesFigure/Data/megatrees.rds") 
-profits <- readRDS("R_code/allOutcomesFigure/Data/profits.rds") %>%  unique() %>% 
+megatrees <- readRDS("Data/MasterMegatreePerformance.rds") 
+profits <- readRDS("Data/MasterFinancialPerformance.rds") %>%  unique() %>% 
   pivot_longer(cols = starts_with("NPV"), names_to = "discount_rate", values_to = "NPV") %>%
   mutate(discount_rate = gsub("NPV", "", discount_rate)) %>%  
   mutate(discount_rate = paste0(discount_rate,"%")) %>% na.omit() %>% as.data.table()
@@ -66,18 +66,23 @@ names(megatrees)
 names(profits)
 names(protection)
 
+#check same #of scenarios in each outcome
+carbon %>%summarise(n = n_distinct(index, production_target))
+megatrees %>%summarise(n = n_distinct(index))
+megatrees %>%summarise(n = n_distinct(index))
+
 #read in scenario information
 
-#yield-matched (#scenarios where 1/30th of plantation conversion happens annually)
-scenarios <- readRDS("R_code/BuildScenarios/BuildingHarvestingScenarios/allScenariosStaggered.rds")
+#yield-matched scenarios
+scenarios <- readRDS("Inputs/MasterAllScenarios.rds")
 scenario_composition <- rbindlist(scenarios, use.names=TRUE) # get scenario composition
 rm(scenarios)
 
 #calculate total # of scenarios 
 ScenarioNum <- scenario_composition %>% 
   filter(str_detect(scenarioName, "CY")) %>% #only extract current yield scenarios
-  select(production_target, index) %>% count()
-print(ScenarioNum)
+  select(production_target, index) %>% unique() %>%  count()
+print(ScenarioNum) #7703
 # --------------Summarise scenario composition -------------------
 
 #---- Calculate Prop OG in scenario ----
@@ -384,11 +389,11 @@ years",
 C <- carbon %>% 
   filter(discount_rate == {{DR_filt}}) %>% 
   filter(scenarioName %in% {{scenarioFilter}}) %>% 
-  master_plot_fun(y_ggplot = TOTcarbon_impact/1000000000, 
-                                    y_geom_point = TOTcarbon_impact/1000000000,
+  master_plot_fun(y_ggplot = TOTcarbon_all_impact/1000000000, 
+                                    y_geom_point = TOTcarbon_all_impact/1000000000,
                                     ylab_text =  "Social Carbon Cost 
 (USD 1000M)",
-                                    ylims = c(-41.0,0), 
+                                    ylims = c(-21.0,0), 
                                     scenarioFilter = scenarioFilter,
                   
                           jitterwidth = 0.05, 
@@ -653,10 +658,10 @@ for (i in rate) {
     filter(discount_rate == i) %>%
     filter(scenarioName %in% {{scenarioFilter}}) %>%
     master_plot_fun(
-      y_ggplot = TOTcarbon_impact / 1000000000,
-      y_geom_point = TOTcarbon_impact / 1000000000,
+      y_ggplot = TOTcarbon_all_impact / 1000000000,
+      y_geom_point = TOTcarbon_all_impact / 1000000000,
       ylab_text = "Social Carbon Cost (USD 1000M)",
-      ylims = c(-41.0, 0),
+      ylims = c(-51.0, 0),
       scenarioFilter = scenarioFilter,
       jitterwidth = 0.05,
       jitterheight = -0.03
