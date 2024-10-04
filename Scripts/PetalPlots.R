@@ -1,3 +1,5 @@
+rm(list = ls())
+
 ##build petal plots on a scenario basis 
 library(tidyverse)
 library(ggplot2)
@@ -6,8 +8,7 @@ library(data.table)
 library(cowplot)
 library(patchwork)
 
-setwd("C:/Users/Gianluca Cerullo/OneDrive - University of Cambridge/PhD/Chapter_4_Borneo/CompleteFolder")
-source('R_code/BuildScenarios/BiolerCodeScenarioConstruction.R')
+source('Inputs/FixedScenarioParams.R')
 
 options(scipen = 999)
 
@@ -29,18 +30,18 @@ all_start_landscape <- all_start_landscape %>%
 
 print(all_start_landscape)
 #get scenario composition:
-scenarios <- readRDS("R_code/BuildScenarios/BuildingHarvestingScenarios/allScenariosStaggered.rds")
+scenarios <- readRDS("Inputs/MasterAllScenarios.rds")
 scenario_composition <- rbindlist(scenarios, use.names=TRUE) # get scenario composition
 rm(scenarios)
 
 
 
 #read in performance outcomes 
-birds <- readRDS("R_code/allOutcomesFigure/Data/OG_baseline_birds.rds") %>% select(index, production_target, scenarioName, scenarioStart, medianRelativeOccupancy, spp_category, outcome)
-dungBeetles <- readRDS("R_code//allOutcomesFigure/Data/OG_baseline_dungBeetles.rds") %>% select(index, production_target, scenarioName, scenarioStart, medianRelativeOccupancy, spp_category, outcome)
-carbon <-  readRDS("R_code/allOutcomesFigure/Data/carbon.rds") %>% select(index, production_target, scenarioName, scenarioStart, TOTcarbon_impact, discount_rate, outcome)
-megatrees <- readRDS("R_code/allOutcomesFigure/Data/megatrees.rds") %>% select(index, production_target, scenarioName, scenarioStart, landscape_prop, outcome)
-profits_df <- readRDS("R_code/allOutcomesFigure/Data/profits.rds") %>%  
+birds <- readRDS("Data/OG_baseline_birdsSept24.rds") %>% select(index, production_target, scenarioName, scenarioStart, medianRelativeOccupancy, spp_category, outcome)
+dungBeetles <- readRDS("Data/MasterDBPerformance.rds") %>% select(index, production_target, scenarioName, scenarioStart, medianRelativeOccupancy, spp_category, outcome)
+carbon <-  readRDS("Data/MasterCarbonPerformance2.rds") %>% select(index, production_target, scenarioName, scenarioStart, TOTcarbon_all_impact, discount_rate, outcome)
+megatrees <- readRDS("Data/MasterMegatreePerformance.rds") %>% select(index, production_target, scenarioName, scenarioStart, landscape_prop, outcome)
+profits_df <- readRDS("Data/MasterFinancialPerformance.rds") %>%  
   pivot_longer(cols = starts_with("NPV"), names_to = "discount_rate", values_to = "NPV") %>%
   mutate(discount_rate = gsub("NPV", "", discount_rate)) %>% 
   mutate(discount_rate = paste0(discount_rate,"%")) %>% na.omit() %>% 
@@ -61,7 +62,7 @@ birds<- birds %>% rename(performance = medianRelativeOccupancy,
 dungBeetles<- dungBeetles %>% rename(performance = medianRelativeOccupancy, 
                          modulator = spp_category)
 
-carbon <- carbon %>% rename(performance = TOTcarbon_impact, 
+carbon <- carbon %>% rename(performance = TOTcarbon_all_impact, 
                                  modulator = discount_rate) #%>%  
   #remove negatives from carbon. So now bigger values are worse (i.e have a larger social carbon impact)
  # mutate(performance = abs(performance))
@@ -94,7 +95,10 @@ masterDF <- birds %>% rbind(dungBeetles) %>% rbind(carbon) %>%
 
 
 
-x <- masterDF %>% filter(scenarioStart == "all_primary") %>%  select(index,production_target, scenarioStart) %>% unique %>% group_by(production_target) %>% count()
+x <- masterDF %>%
+  filter(scenarioStart == "all_primary") %>% 
+  select(index,production_target, scenarioStart) %>%
+  unique %>% group_by(production_target) %>% count()
 
 #---- find some intersting scenarios to visualise ----------
 
@@ -216,7 +220,7 @@ SL_vals  <- unique(masterDF$scenarioStart)
 print(SL_vals)
 
 
-#plot all petal plots; if I don't define filter_scenarios, will return all indices
+#plot all petal plots; if I don't define filter_scenarios, will return all sxenarios
 #for the production target 
 
 a <- petal_plot_fun(x = masterDF, 
