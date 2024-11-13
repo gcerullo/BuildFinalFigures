@@ -18,7 +18,6 @@ library(gridExtra)
 
 
 source('Inputs/FixedScenarioParams.R')
-
 #.....................................
 #notes
 #For birds and dung beetles, we must choose which spp_category we want to plot (i.e. winner/loser/intermediates)
@@ -30,15 +29,15 @@ source('Inputs/FixedScenarioParams.R')
 #read in performance outcomes 
 
 #select birds categorised either by my owner winner/loser/int classification...
-birds <- readRDS("TEMPORARYDATA_TODELETE/OG_baseline_birds.rds") %>% unique() %>% rename(bird_grp = spp_category)
+birds <- readRDS("Data/OG_baseline_birdsSept24.rds") %>% unique() %>% rename(bird_grp = spp_category)
 #or by whether threatened on IUCN red list 
-birds2 <- readRDS("TEMPORARYDATA_TODELETE/OG_baseline_birdsIUCN.rds") %>% unique() %>%  rename(bird_grp = threatened)
+birds2 <- readRDS("Data/OG_baseline_birdsIUCNSept24.rds") %>% unique() %>%  rename(bird_grp = threatened)
 
 #join IUCN status and habitat-affinities
 birds <- birds %>% rbind(birds2) 
 
 #read in where old-growth forest is added as the baseline
-dungBeetles <- readRDS("TEMPORARYDATA_TODELETE/OG_baseline_dungBeetles.rds")
+dungBeetles <- readRDS("Data/MasterDBPerformance.rds")
 
 carbon <-  readRDS("Data/MasterCarbonPerformance2.rds") #WARNING; AS CURRENTLY EXPORTED, THE UNCERTAINTY (e.g. lwr and upr ACD) have not incoroprated belowground carbon dynamics)
 # DO NOT USE OR TRUST THESE. 
@@ -69,7 +68,10 @@ names(protection)
 #check same #of scenarios in each outcome
 carbon %>%summarise(n = n_distinct(index, production_target))
 megatrees %>%summarise(n = n_distinct(index))
-megatrees %>%summarise(n = n_distinct(index))
+birds %>%summarise(n = n_distinct(index))
+dungBeetles %>%summarise(n = n_distinct(index))
+profits %>%summarise(n = n_distinct(index))
+
 
 #read in scenario information
 
@@ -540,13 +542,7 @@ plot_with_specifics(scenarioFilter = scenario_filters_D,
                     DR_filt = "6%",
                     costType = "ProtectionCosts")
 
-#costs of protecting, in a scenario where loggers leave after first harvest, so society must pay to protect thereafter 
-loserB_loserDB_CutAndRunprotectionCosts_2DR<-
-plot_with_specifics(scenarioFilter = scenario_filters_D, 
-                    bird_grp = "loser", 
-                    spCategory = "loser", 
-                    DR_filt = "2%",
-                    costType = "ProtectionCosts_CutAndRun")
+
 
 #---- changing starting landscape and rules ------
 
@@ -590,7 +586,6 @@ object_names_to_export <- c(
   "winnerB_winnerDB_harvestProfits_6DR",
   "loserB_loserDB_harvestProfits_2DR",
 #  "loserB_loserDB_protectionCosts_2DR",
-#  "loserB_loserDB_CutAndRunprotectionCosts_2DR",
 #  "NoDef__loserB_loserDB_harvestProfits_2DR",
   "NoDef__loserB_loserDB_harvestProfits_6DR",
   "DefDL__loserB_loserDB_harvestProfits_2DR",
@@ -625,8 +620,8 @@ ggsave(loserB_loserDB_harvestProfits_6DR,
                units = "in")
 
 
-ggsave(NoDefDL__loserB_loserDB_harvestProfits_6DR, 
-         filename = paste0(path, "//NoDefDL__loserB_loserDB_harvestProfits_6DR.pdf"),
+ggsave(IUCNB_loserDB_harvestProfits_6DR, 
+         filename = paste0(path, "//IUCNB_loserDB_harvestProfits_6DR.pdf"),
          width =  width, #in pixels 
          height = height,
          units = "in")
@@ -662,8 +657,10 @@ for (i in rate) {
     filter(discount_rate == i) %>%
     filter(scenarioName %in% {{scenarioFilter}}) %>%
     master_plot_fun(
-      y_ggplot = TOTcarbon_all_impact / 1000000000,
-      y_geom_point = TOTcarbon_all_impact / 1000000000,
+      # y_ggplot = TOTcarbon_all_impact / 1000000000,
+      # y_geom_point = TOTcarbon_all_impact / 1000000000,
+      y_ggplot = TOTcarbon_ACD_impact / 1000000000,
+      y_geom_point = TOTcarbon_ACD_impact / 1000000000,
       ylab_text = "Social Carbon Cost (USD 1000M)",
       ylims = c(-51.0, 0),
       scenarioFilter = scenarioFilter,
@@ -838,6 +835,12 @@ ggsave(variousDR,
        height = height/2,
        units = "in")
 
+ggsave(variousDR, 
+       filename = paste0(path, "//ACDcarbon_2_4_6_dr_allPrimary_Mostly1l_Mostly2l.pdf"),
+       width =  width, #in pixels 
+       height = height/2,
+       units = "in")
+
 ggsave(bird_grps, 
        filename = paste0(path, "//bird_Loser_Threatened_NotThreaten_Int1l_Int2L_winners_allPrimary_Mostly1l_Mostly2l.pdf"),
        width =  width, #in pixels 
@@ -894,10 +897,10 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "all_primary" &
                                   discount_rate == "6%") %>% mutate(
-                                    TOTcarbon_impact = TOTcarbon_impact/1000000000
+                                    TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
                                   )                                      
-min(p38carbon$TOTcarbon_impact )/
-  max(p38carbon$TOTcarbon_impact ) 
+min(p38carbon$TOTcarbon_all_impact )/
+  max(p38carbon$TOTcarbon_all_impact ) 
 
 #harvest revenues
 p38profHARV <- profits %>% filter(production_target == 0.38 &
@@ -966,10 +969,10 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "mostly_1L" &
                                   discount_rate == "6%") %>% mutate(
-                                    TOTcarbon_impact = TOTcarbon_impact/1000000000
+                                    TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
                                   )                                      
-min(p38carbon$TOTcarbon_impact )/
-  max(p38carbon$TOTcarbon_impact ) 
+min(p38carbon$TOTcarbon_all_impact )/
+  max(p38carbon$TOTcarbon_all_impact ) 
 
 # -2.072692 -> clearing primary forest for plantations at 0.38
 # -0.5191196 -> clearing once-logged forest for plantation = 4X different
@@ -1042,10 +1045,10 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "mostly_2L" &
                                   discount_rate == "6%") %>% mutate(
-                                    TOTcarbon_impact = TOTcarbon_impact/1000000000
+                                    TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
                                   )                                      
-min(p38carbon$TOTcarbon_impact )/
-  max(p38carbon$TOTcarbon_impact ) 
+min(p38carbon$TOTcarbon_all_impact )/
+  max(p38carbon$TOTcarbon_all_impact ) 
 
 # -1.525234 -> clearing primary forest for plantation
 # -0.3736017 -> clearing once-logged forest for plantation = 4X different
@@ -1108,7 +1111,7 @@ megatrees %>% filter(production_target == P &
 carbon %>% filter(production_target == P & 
                          scenarioStart == "all_primary" & 
                          discount_rate == "6%") %>%  
-  mutate(diff = max(TOTcarbon_impact/1000000000) - min(TOTcarbon_impact/1000000000 ))
+  mutate(diff = max(TOTcarbon_all_impact/1000000000) - min(TOTcarbon_all_impact/1000000000 ))
 
 
  profits %>% filter(production_target == P &
@@ -1193,7 +1196,7 @@ carbonSummary <- carbon %>% filter(production_target == 0.75 &
                                      scenarioStart == "all_primary" & 
                                      discount_rate == "6%") %>% 
   # filter(scenarioName %in% {{scenarioFilter}}) %>% 
-  mutate(TOTcarbon_impact = TOTcarbon_impact/1000000000)
+  mutate(TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000)
 #bird groups:
 sppCategories <- readRDS("R_code/AssessBiodiversityOutcomes/Outputs/sppCategories.rds")
 sppCategories %>%  group_by(spp_category) %>% count()

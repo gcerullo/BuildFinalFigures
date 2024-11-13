@@ -74,7 +74,8 @@ megatrees <- megatrees %>% rename(performance = landscape_prop) %>%
 
 profits <- profits_df %>% filter(costType == "HarvestProfits") %>% select(-costType)  %>%  
   rename(performance= NPV, 
-         modulator = discount_rate)
+         modulator = discount_rate) %>%
+  mutate(outcome = "profits")
 
 costs <-  profits_df %>% filter(costType == "ProtectionCosts") %>% select(-costType)  %>%
   rename(performance= NPV,
@@ -162,7 +163,6 @@ Petalplots <- x %>% ggplot(aes(x = outcome, y = normalised_performance, fill = o
   ylim(0,1.1) +
   geom_hline(yintercept = 1.1, linetype = "dashed", color = "black")+
   geom_hline(yintercept = 0.1, linetype = "dashed", color = "black")+
-  #facet_wrap(~index, nrow = 1)+
   facet_wrap(~index, ncol =  1)+
   scale_linetype_manual("Break-even", values = c("Break-even" = 2), name = "") +
   coord_polar(clip = "off") +
@@ -179,7 +179,7 @@ Petalplots <- x %>% ggplot(aes(x = outcome, y = normalised_performance, fill = o
 
 
 #get compositions of plotted scenario 
-sc <- indexes %>% left_join(scenario_composition)
+sc <- indexes %>% left_join(scenario_composition) 
 
 # Create pie charts for each 'index' and 'production_target' combination
 composition_pies <- sc %>%
@@ -190,7 +190,6 @@ composition_pies <- sc %>%
   ggplot(aes(x = "", y = num_parcels, fill = habitat)) +
   geom_bar(stat = "identity", width = 1) +
   coord_polar("y", start = 0) +
-#  facet_wrap(~index, nrow = 1)+
   facet_wrap(~index, ncol = 1)+
   scale_fill_manual(values = habitat_colors) +
   labs( fill = "Habitat") +
@@ -207,7 +206,7 @@ composition_pies <- sc %>%
 
 #final_plots <-plot_grid(Petalplots, composition_pies, nrow =2, rel_heights = c(1, 0.3), align = 'v', axis = '-1000')
 #final_plots<- Petalplots/composition_pies
-final_plots <-plot_grid(composition_pies, Petalplots, nrow =2, rel_heights = c(0.2, 1), align = 'v', axis = '-1000')
+final_plots <-plot_grid(composition_pies, Petalplots, nrow =2, rel_heights = c(0.4, 1), align = 'v', axis = '-1000')
 
 
 #, rel_heights = c(1, 0.4))
@@ -221,7 +220,9 @@ print(SL_vals)
 
 
 #plot all petal plots; if I don't define filter_scenarios, will return all sxenarios
-#for the production target 
+#for the production target
+
+scenario_comp_a <- scenario_composition %>% filter(production_target == 0.38 & scenarioName ==  "all_primary_CY_D.csv")
 
 a <- petal_plot_fun(x = masterDF, 
                P = 0.38,
@@ -229,34 +230,37 @@ a <- petal_plot_fun(x = masterDF,
                DR_filt = "6%",
                legend = "none",
                spCategory = "loser", 
-               filter_scenarios = c("all_primary_CY_D.csv 192",
-                                    "all_primary_CY_D.csv 193",
-                                    "all_primary_CY_D.csv 194",
-                                    "all_primary_CY_D.csv 195")) 
+               filter_scenarios = c("all_primary_CY_D.csv 195",
+                                    "all_primary_CY_D.csv 191",
+                                    "all_primary_CY_D.csv 192",
+                                    "all_primary_CY_D.csv 193")) 
 
 #plot all petal plots
+scenario_comp_B <- scenario_composition %>% filter(production_target == 0.38 & scenarioName ==  "mostly_1L_CY_D.csv")
+
 b <- petal_plot_fun(x = masterDF, 
                P = 0.38,
                SL_defined = "mostly_1L", 
                DR_filt = "6%", 
                legend = "none",
                spCategory = "loser", 
-               filter_scenarios = c("mostly_1L_CY_D.csv 335",
-                                    "mostly_1L_CY_D.csv 337",
-                                    "mostly_1L_CY_D.csv 340",
-                                    "mostly_1L_CY_D.csv 342"))
+               filter_scenarios = c("mostly_1L_CY_D.csv 352", #all from euc on 1l
+                                    "mostly_1L_CY_D.csv 347", #relog all once-logged
+                                    "mostly_1L_CY_D.csv 344", #once-log primary
+                                    "mostly_1L_CY_D.csv 345"))#twice-log primary  
 
 #plot all petal plots
+scenario_comp_C <- scenario_composition %>% filter(production_target == 0.38 & scenarioName ==  "mostly_2L_CY_D.csv")
 c <- petal_plot_fun(x = masterDF, 
                P = 0.38,
                SL_defined = "mostly_2L", 
                DR_filt = "6%", 
                legend = "none",
                spCategory = "loser", 
-               filter_scenarios = c("mostly_2L_CY_D.csv 274",
-                                    "mostly_2L_CY_D.csv 270",
-                                    "mostly_2L_CY_D.csv 271",
-                                    "mostly_2L_CY_D.csv 272"))
+               filter_scenarios = c("mostly_2L_CY_D.csv 274", # euc from 2l
+                                    "mostly_2L_CY_D.csv 270", # twice log primary
+                                    "mostly_2L_CY_D.csv 269", #strip-plant primary
+                                    "mostly_2L_CY_D.csv 268")) #once-logging primary
 
 fig1 <- plot_grid(a,b,c, nrow =3)
 fig1 <- plot_grid(a,b,c, ncol =3)
