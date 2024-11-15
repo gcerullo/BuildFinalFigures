@@ -910,8 +910,13 @@ p38profHARV <- profits %>% filter(production_target == 0.38 &
   mutate(
     NPV = NPV/100000000)
 
+#X-fold difference
 max(p38profHARV $NPV )/
   min(p38profHARV $NPV ) 
+
+#$ difference
+(max(p38profHARV $NPV )-
+  min(p38profHARV $NPV ))*100  
 
 #protection costs
 p38profPROT <- profits %>% filter(production_target == 0.38 &
@@ -924,15 +929,14 @@ p38profPROT <- profits %>% filter(production_target == 0.38 &
 max(abs(p38profPROT $NPV ))
 min(abs(p38profPROT $NPV ))
 
-# (max(abs(p38profPROT $NPV )) - 
-#     min(abs(p38profPROT $NPV ))/      #got the brackets wrong in my thesis! Idiot-head
-#     min(abs(p38profPROT $NPV)))*100
+#$ difference 
+(max(abs(p38profPROT $NPV )) - min(abs(p38profPROT $NPV )))*100
 
 ((max(abs(p38profPROT $NPV )) - 
     min(abs(p38profPROT $NPV )))/
     min(abs(p38profPROT $NPV )))*100
 
-((1.529197 -  0.8547951)/ 0.8547951)*100
+(( 1.506792 -  1.01965)/1.01965)*100
 
 
 p38 <- propOGcomp %>% filter(production_target == 0.38 &
@@ -974,8 +978,8 @@ p38carbon <-  carbon %>% filter(production_target == 0.38 &
 min(p38carbon$TOTcarbon_all_impact )/
   max(p38carbon$TOTcarbon_all_impact ) 
 
-# -2.072692 -> clearing primary forest for plantations at 0.38
-# -0.5191196 -> clearing once-logged forest for plantation = 4X different
+# -0.5148743 -> clearing primary forest for plantations at 0.38
+# -0.1609240 -> clearing once-logged forest for plantation = 4X different
 
 
 #harvest revenues
@@ -986,8 +990,13 @@ p38profHARV <- profits %>% filter(production_target == 0.38 &
   mutate(
     NPV = NPV/100000000)
 
+#X-fold difference
 max(p38profHARV $NPV )/
   min(p38profHARV $NPV ) 
+
+#$ difference
+(max(p38profHARV $NPV )-
+    min(p38profHARV $NPV ))*100  
 
 #protection costs
 p38profPROT <- profits %>% filter(production_target == 0.38 &
@@ -999,6 +1008,9 @@ p38profPROT <- profits %>% filter(production_target == 0.38 &
 
 max(abs(p38profPROT $NPV ))
 min(abs(p38profPROT $NPV ))
+
+#$ difference 
+(max(abs(p38profPROT $NPV )) - min(abs(p38profPROT $NPV )))*100
 
 # (max(abs(p38profPROT $NPV )) - 
 #     min(abs(p38profPROT $NPV ))/ min(abs(p38profPROT $NPV)))*100
@@ -1062,8 +1074,14 @@ p38profHARV <- profits %>% filter(production_target == 0.38 &
   mutate(
     NPV = NPV/100000000)
 
+#X-fold difference 
 max(p38profHARV $NPV )/
   min(p38profHARV $NPV ) 
+
+#$ differnece
+#$ difference
+(max(p38profHARV $NPV )-
+    min(p38profHARV $NPV ))*100  
 
 #protection costs
 p38profPROT <- profits %>% filter(production_target == 0.38 &
@@ -1075,9 +1093,10 @@ p38profPROT <- profits %>% filter(production_target == 0.38 &
 
 max(abs(p38profPROT $NPV ))
 min(abs(p38profPROT $NPV ))
-# 
-# (max(abs(p38profPROT $NPV )) - 
-#     min(abs(p38profPROT $NPV ))/ min(abs(p38profPROT $NPV)))*100
+
+#$ difference 
+(max(abs(p38profPROT $NPV )) - min(abs(p38profPROT $NPV )))*100
+
 
 ((max(abs(p38profPROT $NPV )) - 
     min(abs(p38profPROT $NPV )))/
@@ -1095,25 +1114,33 @@ P= 0.99
  birds %>% filter(production_target == P & 
                                 scenarioStart == "all_primary" & 
                                 bird_grp == "loser")  %>%  
-  mutate(percentage_difference = ((max(medianRelativeOccupancy ) - min(medianRelativeOccupancy )) / min(medianRelativeOccupancy )) * 100)
-
+  mutate(percentage_difference = ((max(medianRelativeOccupancy ) - min(medianRelativeOccupancy )) / min(medianRelativeOccupancy )) * 100) 
+ P = 0.1
+ P= 0.99
 dungBeetles %>% filter(production_target == P & 
                                          scenarioStart == "all_primary" & 
                                          spp_category == "loser") %>% 
   mutate(percentage_difference = ((max(medianRelativeOccupancy ) - min(medianRelativeOccupancy )) / min(medianRelativeOccupancy )) * 100)
 
-P= 0.9 
-#megatrees has missing vals at  0.99
+P = 0.1
+P= 0.99
 megatrees %>% filter(production_target == P & 
                          scenarioStart == "all_primary" ) %>% 
   mutate(percentage_difference = ((max(landscape_prop ) - min(landscape_prop )) / min(landscape_prop )) * 100)
 
-carbon %>% filter(production_target == P & 
+x <- carbon %>% filter(production_target == P & 
                          scenarioStart == "all_primary" & 
                          discount_rate == "6%") %>%  
   mutate(diff = max(TOTcarbon_all_impact/1000000000) - min(TOTcarbon_all_impact/1000000000 ))
 
+#6%
+#at P 0.1, tot carbon = differenceis (1183740116-135203961) = 1,048,536,155
+#at P 0.1 tot difference is  (10891899578 -1338519216) = 9,553,380,362 
 
+#profits
+
+P = 0.1
+P= 0.99
  profits %>% filter(production_target == P &
                                     costType == "HarvestProfits"& 
                                     discount_rate == "6%"&
@@ -1123,6 +1150,8 @@ carbon %>% filter(production_target == P &
    mutate(diff = max(NPV) - min(NPV))
  
 #protection
+ P = 0.1
+ P= 0.99
  profits %>% filter(production_target == P &
                       costType == "ProtectionCosts"& 
                       discount_rate == "6%"&
@@ -1133,23 +1162,29 @@ carbon %>% filter(production_target == P &
  
  ##ZERO DEFORESTATION 
  #birds 
-#0.45 = P = 0.5 leave once logged
-#0.37 = P = 0.5 harvest primary  (DIFF = 21.6)
+x <- birds %>% filter(scenarioName == "Mostly1LNoDef" & bird_grp == "loser") %>% 
+  filter(production_target ==0.46) 
+  
+#0.7872712 = P = 0.46 (dont have enough at 0.5) leave once logged
+#0.5793892 = P = 0.46 harvest primary  (DIFF = 21.6)
 
+((0.7872712 - 0.5793892)/0.5793892)*100
 
- 
 
  #megatrees
- #20% = P = 0.5 leave once logged
- #8% = P = 0.5 haevest primary  (DIFF = 21.6) = 150%
- 
+
+x <- megatrees %>% filter(production_target == 0.46, scenarioName == "Mostly1LNoDef") 
+ #12.422657 = P = 0.5 leave once logged
+ #5.82306% = P = 0.5 haevest primary  (DIFF = 21.6) = 150%
+((12.422657- 5.82306)/5.82306)*100
+
 #carbon =
  #-8% = P = 0.5 leave once logged
  #-19 = P = 0.5 haevest primary  (DIFF = 21.6) = 150%
  
 #-----COMPARING DIFFERENT SPECIES AFINITIES -----
 #primary SL, considering low-intensity logging winners  
- birds %>% filter(production_target == 0.75 &    #using 0.91 as don't have scenarios above this for comparison 
+ birds %>% filter(production_target == 0.75 &    
                     scenarioStart == "all_primary" & 
                     bird_grp == "intermediate1L")  %>%  
    mutate(percentage_difference = ((max(medianRelativeOccupancy ) - min(medianRelativeOccupancy )) / min(medianRelativeOccupancy )) * 100)
