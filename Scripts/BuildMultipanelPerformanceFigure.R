@@ -553,6 +553,13 @@ NoDef__loserB_loserDB_harvestProfits_6DR <-
                     DR_filt = "6%",
                     costType = "HarvestProfits")
 
+NoDef__loserB_loserDB_harvestProfits_4DR <- 
+  plot_with_specifics(scenarioFilter = scenario_filter_ND, 
+                      bird_grp = "loser", 
+                      spCategory = "loser", 
+                      DR_filt = "4%",
+                      costType = "HarvestProfits")
+
 DefDL__loserB_loserDB_harvestProfits_6DR <- 
 plot_with_specifics(scenarioFilter = scenario_filters_D_DL, 
                     bird_grp = "loser", 
@@ -560,12 +567,26 @@ plot_with_specifics(scenarioFilter = scenario_filters_D_DL,
                     DR_filt = "6%",
                     costType = "HarvestProfits")
 
+DefDL__loserB_loserDB_harvestProfits_4DR <- 
+  plot_with_specifics(scenarioFilter = scenario_filters_D_DL, 
+                      bird_grp = "loser", 
+                      spCategory = "loser", 
+                      DR_filt = "4%",
+                      costType = "HarvestProfits")
+
 NoDefDL__loserB_loserDB_harvestProfits_6DR <- 
   plot_with_specifics(scenarioFilter = scenario_filters_ND_DL, 
                     bird_grp = "loser", 
                     spCategory = "loser", 
                     DR_filt = "6%",
                     costType = "HarvestProfits")
+
+NoDefDL__loserB_loserDB_harvestProfits_4DR <- 
+  plot_with_specifics(scenarioFilter = scenario_filters_ND_DL, 
+                      bird_grp = "loser", 
+                      spCategory = "loser", 
+                      DR_filt = "4%",
+                      costType = "HarvestProfits")
 #--------------- Export figures -----------
 #set figure export path
 path = "Figures/GeomPointFigs"
@@ -588,13 +609,14 @@ object_names_to_export <- c(
 #  "loserB_loserDB_protectionCosts_2DR",
 #  "NoDef__loserB_loserDB_harvestProfits_2DR",
   "NoDef__loserB_loserDB_harvestProfits_6DR",
+   "NoDef__loserB_loserDB_harvestProfits_4DR",
   "DefDL__loserB_loserDB_harvestProfits_2DR",
   "NoDefDL__loserB_loserDB_harvestProfits_2DR"
   # Add more object names as per your defined plots...
 )
 
 
-# Function to export figures to PDFs
+# Function to export figures to PDFsn
 export_plots_to_pdf <- function(object_list, path, width, height) {
   for (object_name in object_list) {
     plot_path <- file.path(path, paste0(object_name, ".pdf"))
@@ -609,6 +631,12 @@ export_plots_to_pdf(object_names_to_export, path, width, height)
 
 ggsave(DefDL__loserB_loserDB_harvestProfits_6DR, 
        filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_6DR.pdf"),
+       width =  width, #in pixels 
+       height = height,
+       units = "in")
+
+ggsave(DefDL__loserB_loserDB_harvestProfits_4DR, 
+       filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_4DR.pdf"),
        width =  width, #in pixels 
        height = height,
        units = "in")
@@ -638,6 +666,12 @@ ggsave(NoDef__loserB_loserDB_harvestProfits_6DR,
        height = height,
        units = "in")
 
+ggsave(NoDef__loserB_loserDB_harvestProfits_4DR, 
+       filename = paste0(path, "//NoDef__loserB_loserDB_harvestProfits_4DR.pdf"),
+       width =  width, #in pixels 
+       height = height,
+       units = "in")
+
 
 #-----hand build extra plots -----
 
@@ -648,32 +682,37 @@ rate <- c("2%", "4%", "6%")
 scenarioFilter <- scenario_filters_D
 print(scenarioFilter)
 
-
-#vary carbon impacts by discount rate
+#vary carbon impacts by discount rate while changing y lims for each discount rate
 plots <- list()
 
-for (i in rate) {
-  plot <- carbon %>%
-    filter(discount_rate == i) %>%
-    filter(scenarioName %in% {{scenarioFilter}}) %>%
+# Function to create a single plot for a given discount rate
+create_carbon_plot <- function(data, rate, ylim, scenarioFilter) {
+  data %>%
+    filter(discount_rate == rate) %>%
+    filter(scenarioName %in% scenarioFilter) %>%
     master_plot_fun(
-      # y_ggplot = TOTcarbon_all_impact / 1000000000,
-      # y_geom_point = TOTcarbon_all_impact / 1000000000,
-      y_ggplot = TOTcarbon_ACD_impact / 1000000000,
-      y_geom_point = TOTcarbon_ACD_impact / 1000000000,
-      ylab_text = "Social Carbon Cost (USD 1000M)",
-      ylims = c(-51.0, 0),
+      y_ggplot = TOTcarbon_all_impact / 1000000000,
+      y_geom_point = TOTcarbon_all_impact / 1000000000,
+      ylab_text = paste("Social Carbon Cost (USD 1000M) - Rate", rate),
+      ylims = ylim,
       scenarioFilter = scenarioFilter,
       jitterwidth = 0.05,
       jitterheight = -0.03
     )
-  plots[[i]] <- plot
 }
+# Define ylims for each discount rate
+ylims_list <- list(
+  "2%" = c(-400, 0),
+  "4%" = c(-30, 0),
+  "6%" = c(-12, 10)
+)
 
+
+# Generate plots for each discount rate
+plots <- map(rate, ~ create_carbon_plot(carbon, .x, ylims_list[[.x]], scenarioFilter))
+
+# Combine the plots
 variousDR <- plot_grid(plotlist = plots, ncol = 1)
-
-#add legend 
-variousDR <- plot_grid(variousDR, all_legend, nrow =2,rel_heights = c(1, 0.2))
 
 
 #vary financial impacts by discount rates 
