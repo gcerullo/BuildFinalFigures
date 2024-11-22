@@ -935,16 +935,17 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "all_primary" &
-                                  discount_rate == "6%") %>% mutate(
+                                  discount_rate == "4%") %>% mutate(
                                     TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
                                   )                                      
 min(p38carbon$TOTcarbon_all_impact )/
   max(p38carbon$TOTcarbon_all_impact ) 
 
+max(p38carbon$TOTcarbon_all_impact )-  min(p38carbon$TOTcarbon_all_impact ) 
 #harvest revenues
 p38profHARV <- profits %>% filter(production_target == 0.38 &
                                     costType == "HarvestProfits"& 
-                                    discount_rate == "6%"&
+                                    discount_rate == "4%"&
                                     i.scenarioStart == "all_primary") %>%  
   mutate(
     NPV = NPV/100000000)
@@ -960,7 +961,7 @@ max(p38profHARV $NPV )/
 #protection costs
 p38profPROT <- profits %>% filter(production_target == 0.38 &
                                     costType == "ProtectionCosts"& 
-                                    discount_rate == "6%"&
+                                    discount_rate == "4%"&
                                     i.scenarioStart == "all_primary") %>%  
   mutate(
     NPV = NPV/100000000)
@@ -1011,20 +1012,20 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "mostly_1L" &
-                                  discount_rate == "6%") %>% mutate(
+                                  discount_rate == "4%") %>% mutate(
                                     TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
                                   )                                      
 min(p38carbon$TOTcarbon_all_impact )/
   max(p38carbon$TOTcarbon_all_impact ) 
 
-# -0.5148743 -> clearing primary forest for plantations at 0.38
-# -0.1609240 -> clearing once-logged forest for plantation = 4X different
+# -1.210305 -> clearing primary forest for plantations at 0.38
+# -0.4379518 -> clearing once-logged forest for plantation = ~3X different
 
 
 #harvest revenues
 p38profHARV <- profits %>% filter(production_target == 0.38 &
                                     costType == "HarvestProfits"& 
-                                    discount_rate == "6%"&
+                                    discount_rate == "4%"&
                                     i.scenarioStart == "mostly_1L") %>%  
   mutate(
     NPV = NPV/100000000)
@@ -1040,7 +1041,7 @@ max(p38profHARV $NPV )/
 #protection costs
 p38profPROT <- profits %>% filter(production_target == 0.38 &
                                     costType == "ProtectionCosts"& 
-                                    discount_rate == "6%"&
+                                    discount_rate == "4%"&
                                     i.scenarioStart == "mostly_1L") %>%  
   mutate(
     NPV = NPV/100000000)
@@ -1095,7 +1096,7 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "mostly_2L" &
-                                  discount_rate == "6%") %>% mutate(
+                                  discount_rate == "4%") %>% mutate(
                                     TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
                                   )                                      
 min(p38carbon$TOTcarbon_all_impact )/
@@ -1108,7 +1109,7 @@ min(p38carbon$TOTcarbon_all_impact )/
 #harvest revenues
 p38profHARV <- profits %>% filter(production_target == 0.38 &
                                     costType == "HarvestProfits"& 
-                                    discount_rate == "6%"&
+                                    discount_rate == "4%"&
                                     i.scenarioStart == "mostly_2L") %>%  
   mutate(
     NPV = NPV/100000000)
@@ -1125,7 +1126,7 @@ max(p38profHARV $NPV )/
 #protection costs
 p38profPROT <- profits %>% filter(production_target == 0.38 &
                                     costType == "ProtectionCosts"& 
-                                    discount_rate == "6%"&
+                                    discount_rate == "4%"&
                                     i.scenarioStart == "mostly_2L") %>%  
   mutate(
     NPV = NPV/100000000)
@@ -1169,12 +1170,12 @@ megatrees %>% filter(production_target == P &
 
 x <- carbon %>% filter(production_target == P & 
                          scenarioStart == "all_primary" & 
-                         discount_rate == "6%") %>%  
+                         discount_rate == "4%") %>%  
   mutate(diff = max(TOTcarbon_all_impact/1000000000) - min(TOTcarbon_all_impact/1000000000 ))
 
-#6%
-#at P 0.1, tot carbon = differenceis (1183740116-135203961) = 1,048,536,155
-#at P 0.1 tot difference is  (10891899578 -1338519216) = 9,553,380,362 
+#4%
+#at P 0.1, tot carbon = differenceis (1183740116-135203961) = 2.025785
+#at P 0.1 tot difference is 20.05527
 
 #profits
 
@@ -1182,7 +1183,7 @@ P = 0.1
 P= 0.99
  profits %>% filter(production_target == P &
                                     costType == "HarvestProfits"& 
-                                    discount_rate == "6%"&
+                                    discount_rate == "4%"&
                                     i.scenarioStart == "all_primary") %>%  
   mutate(
     NPV = NPV/100000000) %>% 
@@ -1193,7 +1194,7 @@ P= 0.99
  P= 0.99
  profits %>% filter(production_target == P &
                       costType == "ProtectionCosts"& 
-                      discount_rate == "6%"&
+                      discount_rate == "4%"&
                       i.scenarioStart == "all_primary") %>%  
    mutate(
      NPV = NPV/100000000) %>% 
@@ -1218,6 +1219,14 @@ x <- megatrees %>% filter(production_target == 0.46, scenarioName == "Mostly1LNo
 ((12.422657- 5.82306)/5.82306)*100
 
 #carbon =
+x <- carbon %>% filter(production_target == 0.46 & 
+                         scenarioName == "Mostly1LNoDef" & 
+                         discount_rate == "4%") %>%  
+  mutate(diff = max(TOTcarbon_all_impact/1000000000) - min(TOTcarbon_all_impact/1000000000 ))
+
+unique(carbon$scenarioName)
+
+
  #-8% = P = 0.5 leave once logged
  #-19 = P = 0.5 haevest primary  (DIFF = 21.6) = 150%
  
