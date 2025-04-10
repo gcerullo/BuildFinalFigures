@@ -40,7 +40,16 @@ birds <- birds %>% rbind(birds2)
 dungBeetles <- readRDS("Data/MasterDBPerformance.rds")
 
 carbon <-  readRDS("Data/MasterCarbonPerformance2.rds") #WARNING; AS CURRENTLY EXPORTED, THE UNCERTAINTY (e.g. lwr and upr ACD) have not incoroprated belowground carbon dynamics)
+carbon <-  readRDS("Data/MasterCarbonPerformance_withuncertainty.rds") 
+
 # DO NOT USE OR TRUST THESE. 
+
+# carbon <- readRDS("Data/test_carbonstock_years.rds") %>%  
+#   rename( TOTcarbon_all_impact = all_carbon_stock,
+#           TOTcarbon_ACD_impact = aboveground_carbon_stock) %>% 
+#   crossing(discount_rate = c("2%", "4%","6%" )) %>% 
+#   cbind(outcome = "carbon")
+  
 
 megatrees <- readRDS("Data/MasterMegatreePerformance.rds") 
 profits <- readRDS("Data/MasterFinancialPerformance.rds") %>%  unique() %>% 
@@ -148,7 +157,7 @@ propOGcomp <- prop_OG_fun(scenario_composition) %>% ungroup %>% as.data.table()
 # geom_results <- geom_results[, production_target := as.numeric(production_target)]
 # propOGcomp_dt <- propOGcomp_dt[, index := as.character(index)]
 # propOGcomp_dt <- propOGcomp_dt[, production_target := as.numeric(production_target)]
-
+dungBeetles <- as.data.table(dungBeetles)
 birds <- propOGcomp[birds, on = .(index, production_target)] 
 dungBeetles <- propOGcomp[dungBeetles, on = .(index, production_target)] 
 carbon <- propOGcomp[carbon, on = .(index, production_target)] 
@@ -391,11 +400,11 @@ years",
 C <- carbon %>% 
   filter(discount_rate == {{DR_filt}}) %>% 
   filter(scenarioName %in% {{scenarioFilter}}) %>% 
-  master_plot_fun(y_ggplot = TOTcarbon_all_impact/1000000000, 
+  master_plot_fun(y_ggplot =  TOTcarbon_all_impact/1000000000, #TOTcarbon_ACD_impact/1000000000,
                                     y_geom_point = TOTcarbon_all_impact/1000000000,
                                     ylab_text =  "Social Carbon Cost 
 (USD 1000M)",
-                                    ylims = c(-21.0,0), 
+                                   # ylims = c(-21.0,0), 
                                     scenarioFilter = scenarioFilter,
                   
                           jitterwidth = 0.05, 
@@ -445,6 +454,7 @@ scenario_filters_D <- c("AllPrimary", "Mostly1L", "Mostly2L")
 scenario_filter_ND <- c("AllPrimaryNoDef", "Mostly1LNoDef", "Mostly2LNoDef")
 scenario_filters_D_DL <- c("MostlyPrimary+DL", "Mostly1L+DL", "Mostly2L+DL")
 scenario_filters_ND_DL <- c("MostlyPrimaryNoDef+DL", "Mostly1LNoDef+DL", "Mostly2LNoDef+DL")
+scenario_filters_primary <- c("AllPrimary","MostlyPrimary+DL")
 
 print(unique(birds$bird_grp))
 print(unique(dungBeetles$spp_category))
@@ -461,6 +471,13 @@ loserB_loserDB_harvestProfits_6DR <-
                     spCategory = "loser",
                     DR_filt = "6%",
                     costType = "HarvestProfits")
+# ---- Variable discount rates  --------
+loserB_loserDB_harvestProfits_6DR <-
+  plot_with_specifics(scenarioFilter = scenario_filters_primary, 
+                      bird_grp = "loser", 
+                      spCategory = "loser",
+                      DR_filt = "6%",
+                      costType = "HarvestProfits")
 
 loserB_loserDB_harvestProfits_4DR <-
   plot_with_specifics(scenarioFilter = scenario_filters_D, 

@@ -23,6 +23,150 @@ source("Functions/scenarioCompositionFunctions.R")
 
 #read in species-level data: 
 birds <- readRDS("Data/species_level_relative_occ.rds")
+carbon <-  readRDS("Data/MasterCarbonPerformance_withuncertainty.rds") 
+
+#.....................................
+#CArbon
+
+#.....................................
+# Organize scenario composition for carbon data
+propOGcomp <- prop_OG_fun(scenario_composition) %>% ungroup() %>% as.data.table()
+carbon_data <- propOGcomp[carbon, on = .(index, production_target)] 
+carbon_data <- bivariate_colours_PRIM(carbon_data) %>% rename(hexP = hex)
+carbon_data <- bivariate_colours_1L(carbon_data) %>% rename(hex1L = hex)
+carbon_data <- bivariate_colours_2L(carbon_data) %>% rename(hex2L = hex)
+carbon_data <- plantation_type(carbon_data)
+carbon_data <- rename_ScenarioName_fun(carbon_data)
+
+# Calculate standard errors from confidence intervals
+carbon_data <- carbon_data %>%
+  mutate(
+    # Standard error for TOTcarbon_all_impact
+    TOTcarbon_all_impact_se = (TOTcarbon_impact_all_upr - TOTcarbon_impact_all_lwr) / (2 * 1.96),
+    
+    # Standard error for TOTcarbon_ACD_impact
+    TOTcarbon_ACD_impact_se = (TOTcarbon_impact_ACD_upr - TOTcarbon_impact_ACD_lwr) / (2 * 1.96)
+  )
+
+# Filter data as needed
+carbon_filt <- carbon_data %>%
+  filter(scenarioStart == "all_primary")
+
+# Add a jittered x column to the data
+set.seed(123) # Set seed for reproducibility
+carbon_filt <- carbon_filt %>%
+  mutate(jittered_x = production_target + runif(n(), -0.01, 0.01)) # Shared jitter
+
+# Plot total carbon impact with 95% CI
+plot_total_carbon <- carbon_filt %>%
+  ggplot(aes(x = jittered_x, y = TOTcarbon_all_impact)) +
+  
+  # Error bars with matching jitter
+  geom_errorbar(aes(
+    ymin = TOTcarbon_impact_all_lwr,
+    ymax = TOTcarbon_impact_all_upr,
+    color = case_when(
+      scenarioStart %in% c("all_primary", "primary_deforested") ~ hexP,
+      scenarioStart %in% c("mostly_1L", "mostly_1L_deforested") ~ hex1L,
+      scenarioStart %in% c("mostly_2L", "mostly_2L_deforested") ~ hex2L
+    )
+  ),
+  width = 0.02, # Horizontal cap width
+  alpha = 0.8, # Fainter error bars
+  size = 0.5 # Thinner error bars
+  ) +
+  
+  # Points with increased prominence
+  geom_point(aes(
+    color = case_when(
+      scenarioStart %in% c("all_primary", "primary_deforested") ~ hexP,
+      scenarioStart %in% c("mostly_1L", "mostly_1L_deforested") ~ hex1L,
+      scenarioStart %in% c("mostly_2L", "mostly_2L_deforested") ~ hex2L
+    ),
+    shape = ifelse(propPlant > 0, "Cross", "Point"),
+    alpha = 0.8, # More solid points
+    size = 2 # Larger point size
+  )) +
+  
+  # Color scale and shape mapping
+  scale_colour_identity() +
+  scale_shape_manual(values = c("Point" = 19, "Cross" = 17)) +
+  
+  # Scale y-axis in billions for better readability
+  scale_y_continuous(labels = function(x) paste0(round(x / 1e9, 1), "B")) +
+  
+  # Add labels
+  labs(
+    title = "Total Carbon Impact with 95% CI",
+    y = "Total Carbon Impact (Mg)",
+    x = "Production Target"
+  ) +
+  
+  # Other plot elements
+  xlim(0, 1) +
+  facet_wrap(~scenarioName, ncol = 4) +
+  theme_bw(base_size = textSize) +
+  theme(legend.position = "none",
+        panel.grid.minor = element_blank(), # Remove minor gridlines
+        panel.grid.major = element_line(size = 0.2, colour = "grey80")) # Subtle major gridlines
+
+plot_total_carbon
+
+# Plot ACD carbon impact with 95% CI
+plot_ACD_carbon <- carbon_filt %>%
+  ggplot(aes(x = jittered_x, y = TOTcarbon_ACD_impact)) +
+  
+  # Error bars for ACD
+  geom_errorbar(aes(
+    ymin = TOTcarbon_impact_ACD_lwr,
+    ymax = TOTcarbon_impact_ACD_upr,
+    color = case_when(
+      scenarioStart %in% c("all_primary", "primary_deforested") ~ hexP,
+      scenarioStart %in% c("mostly_1L", "mostly_1L_deforested") ~ hex1L,
+      scenarioStart %in% c("mostly_2L", "mostly_2L_deforested") ~ hex2L
+    )
+  ),
+  width = 0.02, # Horizontal cap width
+  alpha = 0.8, # Fainter error bars
+  size = 0.5 # Thinner error bars
+  ) +
+  
+  # Points with increased prominence
+  geom_point(aes(
+    color = case_when(
+      scenarioStart %in% c("all_primary", "primary_deforested") ~ hexP,
+      scenarioStart %in% c("mostly_1L", "mostly_1L_deforested") ~ hex1L,
+      scenarioStart %in% c("mostly_2L", "mostly_2L_deforested") ~ hex2L
+    ),
+    shape = ifelse(propPlant > 0, "Cross", "Point"),
+    alpha = 0.8, # More solid points
+    size = 2 # Larger point size
+  )) +
+  
+  # Color scale and shape mapping
+  scale_colour_identity() +
+  scale_shape_manual(values = c("Point" = 19, "Cross" = 17)) +
+  
+  # Scale y-axis in billions for better readability
+  scale_y_continuous(labels = function(x) paste0(round(x / 1e9, 1), "B")) +
+  
+  # Add labels
+  labs(
+    title = "Aboveground Carbon Density Impact with 95% CI",
+    y = "ACD Carbon Impact (Mg)",
+    x = "Production Target"
+  ) +
+  
+  # Other plot elements
+  xlim(0, 1) +
+  facet_wrap(~scenarioName, ncol = 4) +
+  theme_bw(base_size = textSize) +
+  theme(legend.position = "none",
+        panel.grid.minor = element_blank(), # Remove minor gridlines
+        panel.grid.major = element_line(size = 0.2, colour = "grey80")) # Subtle major gridlines
+
+plot_ACD_carbon
+
 
 #.....................................
 #organise scenario composition of scenarios
@@ -35,7 +179,7 @@ birds <- plantation_type(birds)
 birds <- rename_ScenarioName_fun(birds)
 
 unique(birds$species)
-sample_spp <- "Great Argus"
+sample_spp <- "Helmeted Hornbill"
 
 birdsfilt <- birds %>%  
   #filter(production_target >0.63 & production_target <0.65 ) %>% 
