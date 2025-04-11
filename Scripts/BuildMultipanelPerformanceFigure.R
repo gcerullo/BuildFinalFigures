@@ -39,19 +39,19 @@ birds <- birds %>% rbind(birds2)
 #read in where old-growth forest is added as the baseline
 dungBeetles <- readRDS("Data/MasterDBPerformance.rds")
 
-carbon <-  readRDS("Data/MasterCarbonPerformance2.rds") #WARNING; AS CURRENTLY EXPORTED, THE UNCERTAINTY (e.g. lwr and upr ACD) have not incoroprated belowground carbon dynamics)
 carbon <-  readRDS("Data/MasterCarbonPerformance_withuncertainty.rds") 
 
 # DO NOT USE OR TRUST THESE. 
 
-# carbon <- readRDS("Data/test_carbonstock_years.rds") %>%  
+# carbon_years <- readRDS("Data/test_carbonstock_years_withuncertainty.rds") %>%
 #   rename( TOTcarbon_all_impact = all_carbon_stock,
-#           TOTcarbon_ACD_impact = aboveground_carbon_stock) %>% 
-#   crossing(discount_rate = c("2%", "4%","6%" )) %>% 
+#           TOTcarbon_ACD_impact = aboveground_carbon_stock) %>%
+#   crossing(discount_rate = c("2%", "4%","6%" )) %>%
 #   cbind(outcome = "carbon")
-  
+#   
 
-megatrees <- readRDS("Data/MasterMegatreePerformance.rds") 
+megatrees <- readRDS("Data/MasterMegatreePerformance_with_uncertainty.rds") 
+
 profits <- readRDS("Data/MasterFinancialPerformance.rds") %>%  unique() %>% 
   pivot_longer(cols = starts_with("NPV"), names_to = "discount_rate", values_to = "NPV") %>%
   mutate(discount_rate = gsub("NPV", "", discount_rate)) %>%  
@@ -169,7 +169,6 @@ protection <- propOGcomp[protection, on = .(index, production_target)]
 
 
 #---------- # add BIVARIATE PLOTTING PARAMETRES --------------------
-
 
 COL <- "DkBlue2" # define colour pallete
 COL <- "BlueOr"
@@ -319,10 +318,12 @@ master_plot_fun <- function(x, y_ggplot, y_geom_point, ylab_text, scenarioFilter
      
      shape = ifelse(propPlant > 0, "Cross", "Point"), 
      alpha = 0.2,
-     stroke = 0
+     stroke = 0,
+ #    size = ifelse(propPlant > 0, 1, 1),  # Adjust sizes: larger for triangles ("Cross") and smaller for points
+     
      ), position = position_jitter(width = jitterwidth, height = jitterheight)) +
     scale_colour_identity() +
-    scale_shape_manual(values = c("Point" = 19, "Cross" = 17)) +
+    scale_shape_manual(values = c("Point" = 19, "Cross" = 2)) +
     # scale_shape_manual(values = c("Point" = 19, "Cross" = 3, "Triangle" = 2)) + # Define shape mapping
     xlim(0, 1) +
     xlab(element_blank()) +
@@ -330,8 +331,11 @@ master_plot_fun <- function(x, y_ggplot, y_geom_point, ylab_text, scenarioFilter
     
     facet_wrap(~scenarioName, ncol = 4) +
     theme_bw(base_size = textSize) +
-    theme(legend.position = "none")
-  
+    theme(legend.position = "none",
+          panel.grid.major = element_line(color = "grey90"),  # Faint major gridlines
+          panel.grid.minor = element_blank(),                # Remove minor gridlines
+          strip.text = element_blank()                       # Removes facet labels
+    )             
   if (!is.null(ylims)) {
     plot <- plot + ylim(ylims)
   }
@@ -606,7 +610,7 @@ NoDefDL__loserB_loserDB_harvestProfits_4DR <-
                       costType = "HarvestProfits")
 #--------------- Export figures -----------
 #set figure export path
-path = "Figures/GeomPointFigs"
+path = "Figures/GeomPointFigs/manuscript_figures"
 # Set the dimensions for A4 size in inches
 width <- 8.27
 height <- 11.69
@@ -615,20 +619,20 @@ height <- 11.69
 #BULK EXPORT 
 # List of your defined object names for exporting as PDFs
 object_names_to_export <- c(
-  "loserB_loserDB_harvestProfits_6DR",
-  "loserB_loserDB_harvestProfits_4DR",
-  "loserB_loserDB_harvestProfits_2DR",
+#  "loserB_loserDB_harvestProfits_6DR",
+  "loserB_loserDB_harvestProfits_4DR",  #Fig2 
+#  "loserB_loserDB_harvestProfits_2DR",
 #  "IUCNB_loserDB_harvestProfits_6DR",
-  "intermediate1LB_intermediate1LDB_harvestProfits_6DR",
-  "intermediate2LB_intermediate2LDB_harvestProfits_6DR",
-  "winnerB_winnerDB_harvestProfits_6DR",
-  "loserB_loserDB_harvestProfits_2DR",
+#  "intermediate1LB_intermediate1LDB_harvestProfits_6DR",
+# "intermediate2LB_intermediate2LDB_harvestProfits_6DR",
+#  "winnerB_winnerDB_harvestProfits_6DR",
+#  "loserB_loserDB_harvestProfits_2DR",
 #  "loserB_loserDB_protectionCosts_2DR",
 #  "NoDef__loserB_loserDB_harvestProfits_2DR",
-  "NoDef__loserB_loserDB_harvestProfits_6DR",
-   "NoDef__loserB_loserDB_harvestProfits_4DR",
-  "DefDL__loserB_loserDB_harvestProfits_2DR",
-  "NoDefDL__loserB_loserDB_harvestProfits_2DR"
+#  "NoDef__loserB_loserDB_harvestProfits_6DR",
+   "NoDef__loserB_loserDB_harvestProfits_4DR",  #Fig S3
+  "DefDL__loserB_loserDB_harvestProfits_4DR"   #Fig s6
+#  "NoDefDL__loserB_loserDB_harvestProfits_2DR"
   # Add more object names as per your defined plots...
 )
 
@@ -646,48 +650,49 @@ export_plots_to_pdf(object_names_to_export, path, width, height)
 
 #SINGLE PLOT EXPORTS
 
-ggsave(DefDL__loserB_loserDB_harvestProfits_6DR, 
-       filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_6DR.pdf"),
-       width =  width, #in pixels 
-       height = height,
-       units = "in")
+# #Figure 2 
+# ggsave(DefDL__loserB_loserDB_harvestProfits_6DR, 
+#        filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_6DR.pdf"),
+#        width =  width, #in pixels 
+#        height = height,
+#        units = "in")
+# 
+# ggsave(DefDL__loserB_loserDB_harvestProfits_4DR, 
+#        filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_4DR.pdf"),
+#        width =  width, #in pixels 
+#        height = height,
+#        units = "in")
+# 
+# ggsave(loserB_loserDB_harvestProfits_6DR, 
+#                filename = paste0(path, "/TESTloserB_loserDB_harvestProfits_6DR.pdf"),
+#                width =  width, #in pixels 
+#                height = height,
+#                units = "in")
+# 
 
-ggsave(DefDL__loserB_loserDB_harvestProfits_4DR, 
-       filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_4DR.pdf"),
-       width =  width, #in pixels 
-       height = height,
-       units = "in")
+# ggsave(IUCNB_loserDB_harvestProfits_6DR, 
+#          filename = paste0(path, "//IUCNB_loserDB_harvestProfits_6DR.pdf"),
+#          width =  width, #in pixels 
+#          height = height,
+#          units = "in")
 
-ggsave(loserB_loserDB_harvestProfits_6DR, 
-               filename = paste0(path, "/loserB_loserDB_harvestProfits_6DR.pdf"),
-               width =  width, #in pixels 
-               height = height,
-               units = "in")
+# ggsave(IUCNB_loserDB_harvestProfits_6DR, 
+#        filename = paste0(path, "//IUCNB_loserDB_harvestProfits_6DR.pdf"),
+#        width =  width, #in pixels 
+#        height = height,
+#        units = "in")
 
-
-ggsave(IUCNB_loserDB_harvestProfits_6DR, 
-         filename = paste0(path, "//IUCNB_loserDB_harvestProfits_6DR.pdf"),
-         width =  width, #in pixels 
-         height = height,
-         units = "in")
-
-ggsave(IUCNB_loserDB_harvestProfits_6DR, 
-       filename = paste0(path, "//IUCNB_loserDB_harvestProfits_6DR.pdf"),
-       width =  width, #in pixels 
-       height = height,
-       units = "in")
-
-ggsave(NoDef__loserB_loserDB_harvestProfits_6DR, 
-       filename = paste0(path, "//NoDef__loserB_loserDB_harvestProfits_6DR.pdf"),
-       width =  width, #in pixels 
-       height = height,
-       units = "in")
-
-ggsave(NoDef__loserB_loserDB_harvestProfits_4DR, 
-       filename = paste0(path, "//NoDef__loserB_loserDB_harvestProfits_4DR.pdf"),
-       width =  width, #in pixels 
-       height = height,
-       units = "in")
+# ggsave(NoDef__loserB_loserDB_harvestProfits_6DR, 
+#        filename = paste0(path, "//NoDef__loserB_loserDB_harvestProfits_6DR.pdf"),
+#        width =  width, #in pixels 
+#        height = height,
+#        units = "in")
+# 
+# ggsave(NoDef__loserB_loserDB_harvestProfits_4DR, 
+#        filename = paste0(path, "//NoDef__loserB_loserDB_harvestProfits_4DR.pdf"),
+#        width =  width, #in pixels 
+#        height = height,
+#        units = "in")
 
 
 #-----hand build extra plots -----
@@ -885,36 +890,42 @@ plot_economic <- plot_grid(Profits_no_deforested,Profits_no_deforested_DL,Protec
 
 
 # --- export extra figs -----
+#fig S4
 ggsave(variousDR, 
        filename = paste0(path, "//carbon_2_4_6_dr_allPrimary_Mostly1l_Mostly2l.pdf"),
        width =  width, #in pixels 
        height = height/2,
        units = "in")
+# 
+# ggsave(variousDR, 
+#        filename = paste0(path, "//ACDcarbon_2_4_6_dr_allPrimary_Mostly1l_Mostly2l.pdf"),
+#        width =  width, #in pixels 
+#        height = height/2,
+#        units = "in")
 
-ggsave(variousDR, 
-       filename = paste0(path, "//ACDcarbon_2_4_6_dr_allPrimary_Mostly1l_Mostly2l.pdf"),
-       width =  width, #in pixels 
-       height = height/2,
-       units = "in")
-
-ggsave(bird_grps, 
-       filename = paste0(path, "//bird_Loser_Threatened_NotThreaten_Int1l_Int2L_winners_allPrimary_Mostly1l_Mostly2l.pdf"),
-       width =  width, #in pixels 
-       height = height,
-       units = "in")
-
+#Fig S5
 ggsave(profitsDR, 
        filename = paste0(path, "//harvestProfits_2_4_6_dr_allPrimary_Mostly1l_Mostly2l.pdf.pdf"),
        width =  width, #in pixels 
        height = height/2,
        units = "in")
 
+##Fig S7
+ggsave(bird_grps, 
+       filename = paste0(path, "//bird_Loser_Threatened_NotThreaten_Int1l_Int2L_winners_allPrimary_Mostly1l_Mostly2l.pdf"),
+       width =  width, #in pixels 
+       height = height,
+       units = "in")
+
+
+#Fig s8
 ggsave(DB_grps, 
        filename = paste0(path, "//DB_Loser_Int1l_Int2L_winners_allPrimary_Mostly1l_Mostly2l.pdf"),
        width =  width, #in pixels 
        height = height/2,
        units = "in")
 
+#Not in supp yet but interesting 
 ggsave(plot_economic, 
        filename = paste0(path, "//HarvestRev_Protection_withAndWithout_deforestedLand_DR6.pdf"),
        width =  width, #in pixels 
@@ -1066,12 +1077,13 @@ p38profPROT <- profits %>% filter(production_target == 0.38 &
 max(abs(p38profPROT $NPV ))
 min(abs(p38profPROT $NPV ))
 
-#$ difference 
+#% difference 
 (max(abs(p38profPROT $NPV )) - min(abs(p38profPROT $NPV )))*100
 
 # (max(abs(p38profPROT $NPV )) - 
 #     min(abs(p38profPROT $NPV ))/ min(abs(p38profPROT $NPV)))*100
 
+#$ difference 
 ((max(abs(p38profPROT $NPV )) - 
     min(abs(p38profPROT $NPV )))/
     min(abs(p38profPROT $NPV )))*100
@@ -1135,8 +1147,11 @@ p38profHARV <- profits %>% filter(production_target == 0.38 &
 max(p38profHARV $NPV )/
   min(p38profHARV $NPV ) 
 
-#$ differnece
-#$ difference
+#$diff in 1
+(max(p38profHARV $NPV )-
+    min(p38profHARV $NPV ))
+
+#% difference
 (max(p38profHARV $NPV )-
     min(p38profHARV $NPV ))*100  
 
@@ -1154,7 +1169,7 @@ min(abs(p38profPROT $NPV ))
 #$ difference 
 (max(abs(p38profPROT $NPV )) - min(abs(p38profPROT $NPV )))*100
 
-
+#% difference
 ((max(abs(p38profPROT $NPV )) - 
     min(abs(p38profPROT $NPV )))/
     min(abs(p38profPROT $NPV )))*100
@@ -1217,7 +1232,7 @@ P= 0.99
      NPV = NPV/100000000) %>% 
    mutate(diff = max(NPV) - min(NPV))
  
- ##ZERO DEFORESTATION 
+##ZERO DEFORESTATION 
  #birds 
 x <- birds %>% filter(scenarioName == "Mostly1LNoDef" & bird_grp == "loser") %>% 
   filter(production_target ==0.46) 
