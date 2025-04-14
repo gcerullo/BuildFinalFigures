@@ -57,8 +57,9 @@ carbon_data <- rename_ScenarioName_fun(carbon_data)
 #   )
 
 # Filter data as needed
-carbon_filt <- carbon_data #%>%
-  #filter(scenarioStart == "all_primary")
+carbon_filt <- carbon_data %>%
+  filter(scenarioStart == "all_primary" |scenarioStart == "mostly_1L" |scenarioStart == "mostly_2L") %>% 
+  filter(scenarioName == "AllPrimary" | scenarioName == "Mostly1L" | scenarioName == "Mostly2L")
 
 # Add a jittered x column to the data
 set.seed(123) # Set seed for reproducibility
@@ -101,12 +102,15 @@ plot_total_carbon <- carbon_filt %>%
   scale_shape_manual(values = c("Point" = 19, "Cross" = 17)) +
   
   # Scale y-axis in billions for better readability
-  scale_y_continuous(labels = function(x) paste0(round(x / 1e9, 1), "B")) +
+  scale_y_continuous(
+    labels = function(x) paste0(round(x / 1e9, 1)), 
+    limits = c(0,17000000000)
+    ) +
   
   # Add labels
   labs(
-    title = "Total Carbon Impact with 95% CI",
-    y = "Total Carbon Impact (Mg)",
+  #  title = "Total Carbon Impact with 95% CI",
+    y = "Scenario Carbon Stock Years (Bn Mg C)",
     x = "Production Target"
   ) +
   
@@ -119,6 +123,16 @@ plot_total_carbon <- carbon_filt %>%
         panel.grid.major = element_line(size = 0.2, colour = "grey80")) # Subtle major gridlines
 
 plot_total_carbon
+
+
+#Export for Supplementary
+width <- 8.27
+height <- 11.69
+ggsave(plot_total_carbon, 
+       filename =  "Figures/GeomPointFigs/manuscript_figures/carbonstockyear_figure.pdf",
+       width =  width, #in pixels 
+       height = height/2,
+       units = "in")
 
 # Plot ACD carbon impact with 95% CI
 plot_ACD_carbon <- carbon_filt %>%
