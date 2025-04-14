@@ -25,6 +25,14 @@ source("Functions/scenarioCompositionFunctions.R")
 birds <- readRDS("Data/species_level_relative_occ.rds")
 carbon <-  readRDS("Data/MasterCarbonPerformance_withuncertainty.rds") 
 
+#do with carbon years instead of econmic flux effects
+carbon <- readRDS("Data/carbonstock_years__withuncertainty.rds") %>%
+  rename( TOTcarbon_all_impact = all_carbon_stock,
+          TOTcarbon_impact_all_upr =  all_carbon_stock_upr,
+          TOTcarbon_impact_all_lwr =  all_carbon_stock_lwr,
+          TOTcarbon_ACD_impact = aboveground_carbon_stock) %>%
+  crossing(discount_rate = c("2%", "4%","6%" )) %>%  data.table() %>%  
+  rename(TOTcarbon_all_impact_se = all_carbon_stock_err )
 #.....................................
 #CArbon
 
@@ -38,19 +46,19 @@ carbon_data <- bivariate_colours_2L(carbon_data) %>% rename(hex2L = hex)
 carbon_data <- plantation_type(carbon_data)
 carbon_data <- rename_ScenarioName_fun(carbon_data)
 
-# Calculate standard errors from confidence intervals
-carbon_data <- carbon_data %>%
-  mutate(
-    # Standard error for TOTcarbon_all_impact
-    TOTcarbon_all_impact_se = (TOTcarbon_impact_all_upr - TOTcarbon_impact_all_lwr) / (2 * 1.96),
-    
-    # Standard error for TOTcarbon_ACD_impact
-    TOTcarbon_ACD_impact_se = (TOTcarbon_impact_ACD_upr - TOTcarbon_impact_ACD_lwr) / (2 * 1.96)
-  )
+# # Calculate standard errors from confidence intervals
+# carbon_data <- carbon_data %>%
+#   mutate(
+#     # Standard error for TOTcarbon_all_impact
+#     TOTcarbon_all_impact_se = (TOTcarbon_impact_all_upr - TOTcarbon_impact_all_lwr) / (2 * 1.96),
+#     
+#     # Standard error for TOTcarbon_ACD_impact
+#     TOTcarbon_ACD_impact_se = (TOTcarbon_impact_ACD_upr - TOTcarbon_impact_ACD_lwr) / (2 * 1.96)
+#   )
 
 # Filter data as needed
-carbon_filt <- carbon_data %>%
-  filter(scenarioStart == "all_primary")
+carbon_filt <- carbon_data #%>%
+  #filter(scenarioStart == "all_primary")
 
 # Add a jittered x column to the data
 set.seed(123) # Set seed for reproducibility

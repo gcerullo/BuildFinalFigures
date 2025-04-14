@@ -43,12 +43,12 @@ carbon <-  readRDS("Data/MasterCarbonPerformance_withuncertainty.rds")
 
 # DO NOT USE OR TRUST THESE. 
 
-# carbon_years <- readRDS("Data/test_carbonstock_years_withuncertainty.rds") %>%
-#   rename( TOTcarbon_all_impact = all_carbon_stock,
-#           TOTcarbon_ACD_impact = aboveground_carbon_stock) %>%
-#   crossing(discount_rate = c("2%", "4%","6%" )) %>%
-#   cbind(outcome = "carbon")
-#   
+carbon_years <- readRDS("Data/carbonstock_years__withuncertainty.rds") %>%
+  rename( TOTcarbon_all_impact = all_carbon_stock,
+          TOTcarbon_ACD_impact = aboveground_carbon_stock) %>%
+  crossing(discount_rate = c("2%", "4%","6%" )) %>%
+  cbind(outcome = "carbon")
+
 
 megatrees <- readRDS("Data/MasterMegatreePerformance_with_uncertainty.rds") 
 
@@ -763,11 +763,6 @@ profitsDR <- plot_grid(plotlist = plots, ncol = 1)
 #add legend 
 #profitsDR <- plot_grid(variousDR, all_legend, nrow =2,rel_heights = c(1, 0.2))
 
-
-
-
-
-
 #----altering species affinities -----
 
 
@@ -936,7 +931,7 @@ ggsave(plot_economic,
 
 
 #--------------- 0.38 production target ------
-
+bil <- 1000000000
 #FULLY-PRIMARY 
 #birds
 p38birds <-  birds %>% filter(production_target == 0.38 & 
@@ -963,13 +958,110 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "all_primary" &
-                                  discount_rate == "4%") %>% mutate(
-                                    TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
+                                  discount_rate == "4%" &
+                                  scenarioName == "AllPrimary") %>% mutate(
+                                    TOTcarbon_all_impact = TOTcarbon_all_impact
                                   )                                      
 min(p38carbon$TOTcarbon_all_impact )/
   max(p38carbon$TOTcarbon_all_impact ) 
 
-max(p38carbon$TOTcarbon_all_impact )-  min(p38carbon$TOTcarbon_all_impact ) 
+(max(p38carbon$TOTcarbon_all_impact )-  min(p38carbon$TOTcarbon_all_impact))/bil
+
+#.....................
+#carbon uncertainty 
+#.....................
+#carbon $USD uncertainty 
+carbon_USD_topscenario <- p38carbon %>%  filter(TOTcarbon_all_impact == max(TOTcarbon_all_impact)) %>%  
+  mutate(all_carbon_err = (TOTcarbon_impact_all_upr - TOTcarbon_impact_all_lwr) / (2 * 1.96)) %>% 
+  select(index,production_target, TOTcarbon_all_impact,all_carbon_err, outcome, discount_rate )
+
+carbon_USD_bottomscenario <- p38carbon %>%  filter(TOTcarbon_all_impact == min(TOTcarbon_all_impact)) %>%  
+  mutate(all_carbon_err = (TOTcarbon_impact_all_upr - TOTcarbon_impact_all_lwr) / (2 * 1.96)) %>%  
+  select(index,production_target, TOTcarbon_all_impact,all_carbon_err, outcome, discount_rate ) %>% slice(1)
+
+
+USD_diff_error <- 
+  
+  #combine top and bottom scenario for processing
+  full_join(carbon_USD_topscenario, 
+            carbon_USD_bottomscenario, 
+            by = c("production_target", "discount_rate", "outcome"),
+            suffix = c("_top", "_bottom")) %>%
+  mutate(
+   
+    # Difference in total carbon impact
+    diff_totcarbon_all_impact = (TOTcarbon_all_impact_top - TOTcarbon_all_impact_bottom) / bil,
+    
+    # Propagated uncertainty for the difference (95% CI)
+    diff_all_carbon_err = sqrt(all_carbon_err_top^2 + all_carbon_err_bottom^2) / bil * 1.96,
+    
+    
+    # Percentage difference
+    perc_diff_totcarbon_all_impact = (diff_totcarbon_all_impact * bil / TOTcarbon_all_impact_bottom) * 100,
+    
+    # Propagated uncertainty (95% CI) for percentage difference
+    perc_diff_all_carbon_err = (diff_all_carbon_err * bil / TOTcarbon_all_impact_bottom) * 100
+  ) %>%
+  select(
+    production_target, discount_rate, outcome, 
+    diff_totcarbon_all_impact, diff_all_carbon_err, 
+    perc_diff_totcarbon_all_impact, perc_diff_all_carbon_err
+  )
+
+#carbon STOCK YEARS OF SCENARIO and uncertainty 
+
+carbon_stock_years_error_fun <- function(x){
+  
+  carbon_topscenario <- x %>%  filter(TOTcarbon_all_impact == max(TOTcarbon_all_impact)) 
+  carbon_bottomscenario <- x %>%  filter(TOTcarbon_all_impact == min(TOTcarbon_all_impact)) 
+  
+
+  carbon_topscenario <- carbon_years %>%
+  semi_join(
+    carbon_topscenario %>% select(index, production_target, discount_rate) %>% unique(),
+    by = c("index", "production_target", "discount_rate")
+  )
+   
+  #get carbon years for top and bottom scenario
+  carbon_bottomscenario <- carbon_years %>%
+  semi_join(
+    carbon_bottomscenario %>% select(index, production_target, discount_rate) %>% unique(),
+    by = c("index", "production_target", "discount_rate")
+  )
+
+stock_years_diff_error <- 
+  
+  #combine top and bottom scenario for processing
+  full_join(carbon_topscenario, 
+            carbon_bottomscenario, 
+                           by = c("production_target", "discount_rate", "outcome"),
+                           suffix = c("_top", "_bottom")) %>%
+  mutate(
+    bil = 1e9,  # Scaling factor for billions
+    # Difference in total carbon impact
+    diff_totcarbon_all_impact = (TOTcarbon_all_impact_top - TOTcarbon_all_impact_bottom) / bil,
+    
+    # Propagated uncertainty for the difference (95% CI)
+    diff_all_carbon_stock_err = sqrt(all_carbon_stock_err_top^2 + all_carbon_stock_err_bottom^2) / bil * 1.96,
+    
+    
+    # Percentage difference
+    perc_diff_totcarbon_all_impact = (diff_totcarbon_all_impact * bil / TOTcarbon_all_impact_bottom) * 100,
+    
+    # Propagated uncertainty (95% CI) for percentage difference
+    perc_diff_all_carbon_stock_err = (diff_all_carbon_stock_err * bil / TOTcarbon_all_impact_bottom) * 100
+  ) %>%
+  select(
+    production_target, discount_rate, outcome, 
+    diff_totcarbon_all_impact, diff_all_carbon_stock_err, 
+    perc_diff_totcarbon_all_impact, perc_diff_all_carbon_stock_err
+  )
+
+    return(stock_years_diff_error)
+}
+
+carbon_stock_years_error_fun(p38carbon)
+
 #harvest revenues
 p38profHARV <- profits %>% filter(production_target == 0.38 &
                                     costType == "HarvestProfits"& 
@@ -1039,12 +1131,18 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
-                                  scenarioStart == "mostly_1L" &
+                                  scenarioStart == "mostly_1L" & 
+                                 scenarioName == "Mostly1L",
                                   discount_rate == "4%") %>% mutate(
-                                    TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
+                                    TOTcarbon_all_impact = TOTcarbon_all_impact
                                   )                                      
+
+
 min(p38carbon$TOTcarbon_all_impact )/
   max(p38carbon$TOTcarbon_all_impact ) 
+
+#stock year uncertainty
+carbon_stock_years_error_fun(p38carbon)
 
 # -1.210305 -> clearing primary forest for plantations at 0.38
 # -0.4379518 -> clearing once-logged forest for plantation = ~3X different
@@ -1125,8 +1223,9 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
                                   scenarioStart == "mostly_2L" &
+                                  scenarioName == "Mostly2L",
                                   discount_rate == "4%") %>% mutate(
-                                    TOTcarbon_all_impact = TOTcarbon_all_impact/1000000000
+                                    TOTcarbon_all_impact = TOTcarbon_all_impact
                                   )                                      
 min(p38carbon$TOTcarbon_all_impact )/
   max(p38carbon$TOTcarbon_all_impact ) 
@@ -1134,6 +1233,9 @@ min(p38carbon$TOTcarbon_all_impact )/
 # -1.525234 -> clearing primary forest for plantation
 # -0.3736017 -> clearing once-logged forest for plantation = 4X different
 
+#stock year uncertainty
+
+carbon_stock_years_error_fun(p38carbon)
 
 #harvest revenues
 p38profHARV <- profits %>% filter(production_target == 0.38 &
@@ -1200,10 +1302,24 @@ megatrees %>% filter(production_target == P &
                          scenarioStart == "all_primary" ) %>% 
   mutate(percentage_difference = ((max(landscape_prop ) - min(landscape_prop )) / min(landscape_prop )) * 100)
 
+#carbon
+P = 0.1
 x <- carbon %>% filter(production_target == P & 
                          scenarioStart == "all_primary" & 
                          discount_rate == "4%") %>%  
-  mutate(diff = max(TOTcarbon_all_impact/1000000000) - min(TOTcarbon_all_impact/1000000000 ))
+mutate(diff = max(TOTcarbon_all_impact) - min(TOTcarbon_all_impact ))
+
+P= 0.99
+y <- carbon %>% filter(production_target == P & 
+                         scenarioStart == "all_primary" & 
+                         discount_rate == "4%") %>%  
+  mutate(diff = max(TOTcarbon_all_impact) - min(TOTcarbon_all_impact ))
+#carbon stock years uncerainty
+carbon_stock_years_error_fun(x)
+carbon_stock_years_error_fun(y)
+
+x
+y
 
 #4%
 #at P 0.1, tot carbon = differenceis (1183740116-135203961) = 2.025785
@@ -1254,10 +1370,10 @@ x <- megatrees %>% filter(production_target == 0.46, scenarioName == "Mostly1LNo
 x <- carbon %>% filter(production_target == 0.46 & 
                          scenarioName == "Mostly1LNoDef" & 
                          discount_rate == "4%") %>%  
-  mutate(diff = max(TOTcarbon_all_impact/1000000000) - min(TOTcarbon_all_impact/1000000000 ))
+  mutate(diff = max(TOTcarbon_all_impact) - min(TOTcarbon_all_impact))
 
-unique(carbon$scenarioName)
-
+#carbon year uncertainty 
+carbon_stock_years_error_fun(x)
 
  #-8% = P = 0.5 leave once logged
  #-19 = P = 0.5 haevest primary  (DIFF = 21.6) = 150%
