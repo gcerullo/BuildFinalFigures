@@ -39,14 +39,20 @@ rm(scenarios)
 #read in performance outcomes 
 birds <- readRDS("Data/OG_baseline_birdsSept24.rds") %>% select(index, production_target, scenarioName, scenarioStart, medianRelativeOccupancy, spp_category, outcome)
 dungBeetles <- readRDS("Data/MasterDBPerformance.rds") %>% select(index, production_target, scenarioName, scenarioStart, medianRelativeOccupancy, spp_category, outcome)
-carbon <-  readRDS("Data/MasterCarbonPerformance2.rds") %>% select(index, production_target, scenarioName, scenarioStart, TOTcarbon_all_impact, discount_rate, outcome)
-megatrees <- readRDS("Data/MasterMegatreePerformance.rds") %>% select(index, production_target, scenarioName, scenarioStart, landscape_prop, outcome)
+carbon <-  readRDS("Data/MasterCarbonPerformance_withuncertainty.rds") %>% select(index, production_target, scenarioName, scenarioStart, TOTcarbon_all_impact, discount_rate, outcome)
+megatrees <- readRDS("Data/MasterMegatreePerformance_with_uncertainty.rds") %>% select(index, production_target, scenarioName, scenarioStart, landscape_prop, outcome)
 profits_df <- readRDS("Data/MasterFinancialPerformance.rds") %>%  
   pivot_longer(cols = starts_with("NPV"), names_to = "discount_rate", values_to = "NPV") %>%
   mutate(discount_rate = gsub("NPV", "", discount_rate)) %>% 
   mutate(discount_rate = paste0(discount_rate,"%")) %>% na.omit() %>% 
   select(index, production_target, scenarioName, scenarioStart, NPV, discount_rate, costType, outcome)
 
+# #quick check DB 
+# #note that for dung beetles in once-logged, the best scenarios are actually those that restore in once-logged; not shown here as complicates results (shown instead in fig 3)
+# 
+# checkDBs <- dungBeetles %>% ungroup %>%  filter(scenarioStart == "mostly_1L" & production_target == 0.38 & modulator == "loser") %>% 
+#   left_join(scenario_composition)
+# checkDBs2 <- checkDBs %>% filter(performance == max(performance))
 
 names(birds)
 names(dungBeetles)
@@ -145,7 +151,7 @@ x <- x %>% left_join(min_max) %>% unique() %>%
  #add 0.1 to all values to that 0 values are still visible as a bar
    mutate(normalised_performance = normalised_performance+ 0.1 )
 
-#store production targeted indexes
+#store production targeted indices
 indexes <- x %>% select(index,production_target) %>% unique() %>%
   arrange(index)
 #store starting landscape name 
@@ -227,7 +233,7 @@ scenario_comp_a <- scenario_composition %>% filter(production_target == 0.38 & s
 a <- petal_plot_fun(x = masterDF, 
                P = 0.38,
                SL_defined = "all_primary", 
-               DR_filt = "6%",
+               DR_filt = "4%",
                legend = "none",
                spCategory = "loser", 
                filter_scenarios = c("all_primary_CY_D.csv 195",
@@ -241,11 +247,13 @@ scenario_comp_B <- scenario_composition %>% filter(production_target == 0.38 & s
 b <- petal_plot_fun(x = masterDF, 
                P = 0.38,
                SL_defined = "mostly_1L", 
-               DR_filt = "6%", 
-               legend = "none",
+               DR_filt = "4%", 
+               legend = "none",                         #note that for dung beetles in once-logged, the best scenarios are actually those that restore in once-logged; not shown here as complicates results (shown instead in fig 3)
                spCategory = "loser", 
                filter_scenarios = c("mostly_1L_CY_D.csv 352", #all from euc on 1l
                                     "mostly_1L_CY_D.csv 347", #relog all once-logged
+                                    "93079", #strip-plant once-logged,
+                                    
                                     "mostly_1L_CY_D.csv 344", #once-log primary
                                     "mostly_1L_CY_D.csv 345"))#twice-log primary  
 
@@ -254,7 +262,7 @@ scenario_comp_C <- scenario_composition %>% filter(production_target == 0.38 & s
 c <- petal_plot_fun(x = masterDF, 
                P = 0.38,
                SL_defined = "mostly_2L", 
-               DR_filt = "6%", 
+               DR_filt = "4%", 
                legend = "none",
                spCategory = "loser", 
                filter_scenarios = c("mostly_2L_CY_D.csv 274", # euc from 2l
@@ -296,7 +304,7 @@ SL_pies <- all_start_landscape %>%
 with_legend <- petal_plot_fun(x = masterDF, 
                     P = 0.26,
                     SL_defined = "mostly_1L", 
-                    DR_filt = "2%", 
+                    DR_filt = "4%", 
                     legend = "bottom",
                     spCategory = "loser")
 

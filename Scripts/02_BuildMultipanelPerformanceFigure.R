@@ -317,13 +317,13 @@ master_plot_fun <- function(x, y_ggplot, y_geom_point, ylab_text, scenarioFilter
      # shape = is_cross 
      
      shape = ifelse(propPlant > 0, "Cross", "Point"), 
-     alpha = 0.2,
-     stroke = 0,
+     alpha = 0.5,
+     stroke = 0.5,
  #    size = ifelse(propPlant > 0, 1, 1),  # Adjust sizes: larger for triangles ("Cross") and smaller for points
      
      ), position = position_jitter(width = jitterwidth, height = jitterheight)) +
     scale_colour_identity() +
-    scale_shape_manual(values = c("Point" = 19, "Cross" = 2)) +
+    scale_shape_manual(values = c("Point" = 19, "Cross" = 2)) +  #empty triangles 
     # scale_shape_manual(values = c("Point" = 19, "Cross" = 3, "Triangle" = 2)) + # Define shape mapping
     xlim(0, 1) +
     xlab(element_blank()) +
@@ -640,8 +640,10 @@ object_names_to_export <- c(
 # Function to export figures to PDFsn
 export_plots_to_pdf <- function(object_list, path, width, height) {
   for (object_name in object_list) {
-    plot_path <- file.path(path, paste0(object_name, ".pdf"))
-    ggsave(get(object_name), filename = plot_path, width = width, height = height, units = "in")
+   plot_path <- file.path(path, paste0(object_name, ".pdf"))
+#    plot_path <- file.path(path, paste0(object_name, ".png"))
+    
+    ggsave(get(object_name), filename = plot_path, width = width, height = height, units = "in", device = cairo_pdf)
   }
 }
 
@@ -949,10 +951,69 @@ p38beetles <-  dungBeetles %>% filter(production_target == 0.38 &
 
 #trees
 p38trees <-  megatrees %>% filter(production_target == 0.38 & 
-                                    scenarioStart == "all_primary" )
+                                    scenarioStart == "all_primary" ) %>%  
+  mutate(landscape_prop_err = (landscape_prop_upr - landscape_prop_lwr) / (2 * 1.96)) 
 
 ((max(p38trees$landscape_prop ) - 
     min(p38trees$landscape_prop ))/ min(p38trees$landscape_prop))*100
+
+#...............
+#Megatree uncertainty
+#...............
+x <- p38trees
+megatree_prop_error_fun <- function(x) {
+  
+  #add 95% CI 
+  x <- x %>% mutate(landscape_prop_err = (landscape_prop_upr - landscape_prop_lwr) / (2 * 1.96)) 
+  
+  # Find the scenarios with the maximum and minimum landscape_prop
+  megatree_topscenario <- x %>% filter(landscape_prop == max(landscape_prop))
+  megatree_bottomscenario <- x %>% filter(landscape_prop == min(landscape_prop))
+  
+  # Get all relevant rows for the top and bottom scenarios
+  megatree_topscenario <- x %>%
+    semi_join(
+      megatree_topscenario %>% select(index, production_target) %>% unique(),
+      by = c("index", "production_target")
+    )
+  
+  megatree_bottomscenario <- x %>%
+    semi_join(
+      megatree_bottomscenario %>% select(index, production_target) %>% unique(),
+      by = c("index", "production_target")
+    )
+  
+  # Combine top and bottom scenarios and calculate differences and propagated uncertainty
+  landscape_diff_error <- full_join(
+    megatree_topscenario, 
+    megatree_bottomscenario, 
+    by = c("production_target",  "outcome"),
+    suffix = c("_top", "_bottom")
+  ) %>%
+    mutate(
+      # Absolute difference
+      diff_landscape_prop = landscape_prop_top - landscape_prop_bottom,
+      
+      # Propagated uncertainty for the difference
+      diff_landscape_prop_err = sqrt(landscape_prop_err_top^2 + landscape_prop_err_bottom^2),
+      
+      # Percentage difference
+      perc_diff_landscape_prop = (diff_landscape_prop / landscape_prop_bottom) * 100,
+      
+      # Propagated uncertainty for the percentage difference
+      perc_diff_landscape_prop_err = (diff_landscape_prop_err / landscape_prop_bottom) * 100
+    ) %>%
+    select(
+      production_target, outcome, 
+      diff_landscape_prop, diff_landscape_prop_err, 
+      perc_diff_landscape_prop, perc_diff_landscape_prop_err
+    )
+  
+  return(landscape_diff_error)
+}
+
+# Example usage
+megatree_prop_error_fun(p38trees)
 
 
 #carbon
@@ -1128,6 +1189,9 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 ((max(p38trees$landscape_prop ) - 
     min(p38trees$landscape_prop ))/ min(p38trees$landscape_prop))*100
 
+#trees uncertainty 
+megatree_prop_error_fun(p38trees)
+
 
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
@@ -1219,6 +1283,8 @@ p38trees <-  megatrees %>% filter(production_target == 0.38 &
 ((max(p38trees$landscape_prop ) - 
     min(p38trees$landscape_prop ))/ min(p38trees$landscape_prop))*100
 
+#trees uncertainty 
+megatree_prop_error_fun(p38trees)
 
 #carbon
 p38carbon <-  carbon %>% filter(production_target == 0.38 & 
@@ -1302,6 +1368,13 @@ megatrees %>% filter(production_target == P &
                          scenarioStart == "all_primary" ) %>% 
   mutate(percentage_difference = ((max(landscape_prop ) - min(landscape_prop )) / min(landscape_prop )) * 100)
 
+#megatree uncertainty
+x <-megatrees %>% filter(production_target == 0.1 & 
+                           scenarioStart == "all_primary" )
+y <-megatrees %>% filter(production_target == 0.99 & 
+                           scenarioStart == "all_primary" ) 
+megatree_prop_error_fun(x)
+megatree_prop_error_fun(y)
 #carbon
 P = 0.1
 x <- carbon %>% filter(production_target == P & 
@@ -1366,6 +1439,8 @@ x <- megatrees %>% filter(production_target == 0.46, scenarioName == "Mostly1LNo
  #5.82306% = P = 0.5 haevest primary  (DIFF = 21.6) = 150%
 ((12.422657- 5.82306)/5.82306)*100
 
+#megatree uncertainty
+megatree_prop_error_fun(x)
 #carbon =
 x <- carbon %>% filter(production_target == 0.46 & 
                          scenarioName == "Mostly1LNoDef" & 
@@ -1373,6 +1448,8 @@ x <- carbon %>% filter(production_target == 0.46 &
   mutate(diff = max(TOTcarbon_all_impact) - min(TOTcarbon_all_impact))
 
 #carbon year uncertainty 
+y <- carbon %>% filter(production_target == 0.46, scenarioName == "Mostly1LNoDef" & discount_rate == "4%") 
+(max(y$TOTcarbon_all_impact)-min(y$TOTcarbon_all_impact)) /1000000000
 carbon_stock_years_error_fun(x)
 
  #-8% = P = 0.5 leave once logged
