@@ -1,5 +1,7 @@
 rm(list = ls())
 
+#This code develops Figure 2 in the main manuscript. Note that this code is provided
+#for replication purposes; final figure assembly was caried out in an image editing software (Inkscpape)
 ##build petal plots on a scenario basis 
 library(tidyverse)
 library(ggplot2)
@@ -48,7 +50,7 @@ profits_df <- readRDS("Data/MasterFinancialPerformance.rds") %>%
   select(index, production_target, scenarioName, scenarioStart, NPV, discount_rate, costType, outcome)
 
 # #quick check DB 
-# #note that for dung beetles in once-logged, the best scenarios are actually those that restore in once-logged; not shown here as complicates results (shown instead in fig 3)
+# #note that for dung beetles in once-logged, the best scenarios are actually those that restore in once-logged; not shown here as complicates results-walkthrough (shown instead in fig 3)
 # 
 # checkDBs <- dungBeetles %>% ungroup %>%  filter(scenarioStart == "mostly_1L" & production_target == 0.38 & modulator == "loser") %>% 
 #   left_join(scenario_composition)
@@ -107,7 +109,7 @@ x <- masterDF %>%
   select(index,production_target, scenarioStart) %>%
   unique %>% group_by(production_target) %>% count()
 
-#---- find some intersting scenarios to visualise ----------
+#---- select scenarios to visualise ----------
 
 petal_plot_fun <- function(x, P, SL_defined, DR_filt, spCategory,legend, filter_scenarios = NULL) {
 
