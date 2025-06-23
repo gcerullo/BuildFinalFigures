@@ -1,4 +1,5 @@
 #build multi-panel scenario performance figure 
+##compute summary statistics for paper (found at the bottom of the script)
 
 
 rm(list = ls())
@@ -21,7 +22,6 @@ source('Inputs/FixedScenarioParams.R')
 #.....................................
 #notes
 #For birds and dung beetles, we must choose which spp_category we want to plot (i.e. winner/loser/intermediates)
-#for megatrees, there is currently no temporal dimension incorporated (TO DO!). Also, megatrees is not a relative measure. it plots scenario landscape; SL megatrees is a seperate column. 
 #for carbon and profits we must select the discount rate being applied; and whether we are looking at aboveground carbon only (ACD) or all carbon, including belowground (all)
 #for profits, we must also select which costType we are plotting ("All_costs","HarvestProfits","ProtectionCosts" "CutAndRun"  )
 #.....................................
@@ -40,8 +40,6 @@ birds <- birds %>% rbind(birds2)
 dungBeetles <- readRDS("Data/MasterDBPerformance.rds")
 
 carbon <-  readRDS("Data/MasterCarbonPerformance_withuncertainty.rds") 
-
-# DO NOT USE OR TRUST THESE. 
 
 carbon_years <- readRDS("Data/carbonstock_years__withuncertainty.rds") %>%
   rename( TOTcarbon_all_impact = all_carbon_stock,
@@ -208,7 +206,6 @@ megatrees<- bivariate_colours_PRIM(megatrees) %>% rename(hexP = hex)
 profits<- bivariate_colours_PRIM(profits) %>% rename(hexP = hex)
 protection<- bivariate_colours_PRIM(protection) %>% rename(hexP = hex)
 
-
 #assign scenarios the colours from the bivariate plot for mostly 1L start
 bivariate_colours_1L <- function(X){
   X %>%  bi_class(x = remainingOG, y = remaining1L, dim = 4, style = "equal") %>%  
@@ -221,7 +218,6 @@ carbon<- bivariate_colours_1L(carbon) %>% rename(hex1L = hex)
 megatrees<- bivariate_colours_1L(megatrees) %>% rename(hex1L = hex)
 profits<- bivariate_colours_1L(profits) %>% rename(hex1L = hex)
 protection <- bivariate_colours_1L(protection) %>% rename(hex1L = hex)
-
 
 
 #assign scenarios the colours from the bivariate plot for mostly 2L start
@@ -288,8 +284,7 @@ megatrees <- rename_ScenarioName_fun(megatrees)
 profits <- rename_ScenarioName_fun(profits)
 protection <-  rename_ScenarioName_fun(protection)
 
-#------Summary statistics for paper -------------------
-#found at the bottom
+
 
 #######################################################
 #--------- PLOT RESULTS ---------------------------------
@@ -608,6 +603,7 @@ NoDefDL__loserB_loserDB_harvestProfits_4DR <-
                       spCategory = "loser", 
                       DR_filt = "4%",
                       costType = "HarvestProfits")
+
 #--------------- Export figures -----------
 #set figure export path
 path = "Figures/GeomPointFigs/manuscript_figures"
@@ -619,9 +615,7 @@ height <- 11.69
 #BULK EXPORT 
 # List of your defined object names for exporting as PDFs
 object_names_to_export <- c(
-#  "loserB_loserDB_harvestProfits_6DR",
   "loserB_loserDB_harvestProfits_4DR",  #Fig2 
-#  "loserB_loserDB_harvestProfits_2DR",
 #  "IUCNB_loserDB_harvestProfits_6DR",
 #  "intermediate1LB_intermediate1LDB_harvestProfits_6DR",
 # "intermediate2LB_intermediate2LDB_harvestProfits_6DR",
@@ -654,47 +648,11 @@ export_plots_to_pdf(object_names_to_export, path, width, height)
 
 # #Figure 2 
 # ggsave(DefDL__loserB_loserDB_harvestProfits_6DR, 
-#        filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_6DR.pdf"),
-#        width =  width, #in pixels 
-#        height = height,
-#        units = "in")
-# 
-# ggsave(DefDL__loserB_loserDB_harvestProfits_4DR, 
 #        filename = paste0(path, "/DefDL__loserB_loserDB_harvestProfits_4DR.pdf"),
 #        width =  width, #in pixels 
 #        height = height,
 #        units = "in")
 # 
-# ggsave(loserB_loserDB_harvestProfits_6DR, 
-#                filename = paste0(path, "/TESTloserB_loserDB_harvestProfits_6DR.pdf"),
-#                width =  width, #in pixels 
-#                height = height,
-#                units = "in")
-# 
-
-# ggsave(IUCNB_loserDB_harvestProfits_6DR, 
-#          filename = paste0(path, "//IUCNB_loserDB_harvestProfits_6DR.pdf"),
-#          width =  width, #in pixels 
-#          height = height,
-#          units = "in")
-
-# ggsave(IUCNB_loserDB_harvestProfits_6DR, 
-#        filename = paste0(path, "//IUCNB_loserDB_harvestProfits_6DR.pdf"),
-#        width =  width, #in pixels 
-#        height = height,
-#        units = "in")
-
-# ggsave(NoDef__loserB_loserDB_harvestProfits_6DR, 
-#        filename = paste0(path, "//NoDef__loserB_loserDB_harvestProfits_6DR.pdf"),
-#        width =  width, #in pixels 
-#        height = height,
-#        units = "in")
-# 
-# ggsave(NoDef__loserB_loserDB_harvestProfits_4DR, 
-#        filename = paste0(path, "//NoDef__loserB_loserDB_harvestProfits_4DR.pdf"),
-#        width =  width, #in pixels 
-#        height = height,
-#        units = "in")
 
 
 #-----hand build extra plots -----
@@ -929,6 +887,7 @@ ggsave(plot_economic,
        height = height,
        units = "in")
 
+#________________________________________________________________________________
 # -----SUMMARY STATISTISCS FOR PAPER  --------
 
 
