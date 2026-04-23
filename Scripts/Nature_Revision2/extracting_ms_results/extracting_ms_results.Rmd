@@ -1,0 +1,197 @@
+---
+title: "Extracting manuscript results from figures for Nature papoer"
+author: "Nature manuscript — iterative extraction"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 11,
+  fig.height = 6.5
+)
+
+helper_candidates <- unique(c(
+  tryCatch(file.path(knitr::current_input(dir = TRUE), "nr2_rmd_project_root.R"), error = function(e) NA_character_),
+  file.path(getwd(), "nr2_rmd_project_root.R"),
+  file.path(getwd(), "extracting_ms_results", "nr2_rmd_project_root.R"),
+  file.path(getwd(), "Scripts", "Nature_Revision2", "nr2_rmd_project_root.R"),
+  file.path(getwd(), "Scripts", "Nature_Revision2", "extracting_ms_results", "nr2_rmd_project_root.R"),
+  normalizePath(file.path(getwd(), "..", "..", "Scripts", "Nature_Revision2", "nr2_rmd_project_root.R"), mustWork = FALSE),
+  normalizePath(file.path(getwd(), "..", "..", "Scripts", "Nature_Revision2", "extracting_ms_results", "nr2_rmd_project_root.R"), mustWork = FALSE)
+))
+helper_candidates <- helper_candidates[!is.na(helper_candidates) & nzchar(helper_candidates)]
+helper_hit <- helper_candidates[file.exists(helper_candidates)][1L]
+if (is.na(helper_hit)) {
+  stop(
+    "Could not find nr2_rmd_project_root.R. Tried:\n",
+    paste(" -", helper_candidates, collapse = "\n"),
+    call. = FALSE
+  )
+}
+source(helper_hit, local = FALSE)
+
+NR2_ROOT <- nr2_project_root()
+knitr::opts_knit$set(root.dir = NR2_ROOT)
+```
+
+This document **embeds** each figure and prints **extracted numbers only** (no code in the body).  
+Live in **`Scripts/Nature_Revision2/extracting_ms_results/`**; you can knit from **`BuildFinalFigures`**, from **`Scripts/Nature_Revision2`**, or from **this folder**. Set **`NR2_PROJECT_ROOT`** to the repo root if needed.
+
+------------------------------------------------------------------------
+
+## Forest plot (*P* = 0.5 vs reference, all-primary start)
+
+```{r forest-source, include=FALSE}
+## Chunks need the repo root as working directory because forest_p05_plot_df_source.R sources Inputs/.
+NR2_ROOT <- if (exists("NR2_ROOT")) get("NR2_ROOT") else nr2_project_root()
+setwd(NR2_ROOT)
+forest_r <- file.path(NR2_ROOT, "Scripts", "Nature_Revision2", "forest_p05_plot_df_source.R")
+if (!file.exists(forest_r)) {
+  stop("Missing forest source script:\n  ", forest_r, call. = FALSE)
+}
+source(forest_r)
+```
+
+```{r forest-figure-embed, results="asis"}
+## HTML sits next to this Rmd under .../extracting_ms_results/ — three levels up to repo root, then Figures/.
+forest_pdf_abs <- file.path(
+  NR2_ROOT, "Figures", "NR2", "forest_plots",
+  "forest_allprimary_p05_vs_p0_four_outcomes_vertical_onerow.pdf"
+)
+forest_href <- "../../../Figures/NR2/forest_plots/forest_allprimary_p05_vs_p0_four_outcomes_vertical_onerow.pdf"
+if (file.exists(forest_pdf_abs)) {
+  knitr::asis_output(paste0(
+    "<div style=\"border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;margin:1rem 0;\">",
+    "<embed src=\"", forest_href, "\" type=\"application/pdf\" width=\"100%\" height=\"720px\" />",
+    "</div>",
+    "<p><a href=\"", forest_href, "\">Open PDF</a> (relative to this report)</p>"
+  ))
+} else {
+  knitr::asis_output(paste0("<p><strong>PDF not found:</strong> ", forest_pdf_abs, "</p>"))
+}
+```
+
+### Extracted values (same data as the figure)
+
+One **row per scenario**; each **outcome is a column**. Scenario letters **A–E** match the forest *x*-axis. Megatrees and carbon include **80% intervals on the change** where the figure does; birds and beetles are **point estimates only**.
+
+```{r forest-extract-table, results="asis"}
+library(dplyr)
+library(tidyr)
+
+fmt_num <- function(x) {
+  x <- suppressWarnings(as.numeric(x))
+  ifelse(is.finite(x), format(round(x, 3), trim = TRUE, digits = 12), "—")
+}
+
+outcome_cols <- c(
+  "Old-growth birds",
+  "Old-growth beetles",
+  "Megatrees (% landscape)",
+  "Cumulative C (billion MgC)"
+)
+
+letter_chr <- as.character(plot_df$index)
+scenario_letter <- unname(scenario_x_label_map[letter_chr])
+scenario_letter[is.na(scenario_letter)] <- "?"
+
+wide <- plot_df %>%
+  mutate(
+    scenario_letter = scenario_letter,
+    plantation = as.character(plant_shape),
+    ol = as.integer(outcome_label),
+    outcome_col = outcome_cols[pmax(1L, pmin(length(outcome_cols), ol))],
+    cell = if_else(
+      is.finite(as.numeric(delta_l)) & is.finite(as.numeric(delta_u)),
+      paste0(fmt_num(delta), " [", fmt_num(delta_l), ", ", fmt_num(delta_u), "]"),
+      fmt_num(delta)
+    )
+  ) %>%
+  select(scenario_letter, index, plantation, outcome_col, cell) %>%
+  pivot_wider(names_from = outcome_col, values_from = cell) %>%
+  arrange(index) %>%
+  transmute(
+    Scenario = scenario_letter,
+    Plantation = plantation,
+    `Old-growth birds` = .data[["Old-growth birds"]],
+    `Old-growth beetles` = .data[["Old-growth beetles"]],
+    `Megatrees (% landscape)` = .data[["Megatrees (% landscape)"]],
+    `Cumulative C (billion MgC)` = .data[["Cumulative C (billion MgC)"]]
+  )
+
+forest_cap <- paste0(
+  "All-primary start: change from reference (*P* = 0) to *P* = 0.5. ",
+  "Bracketed values are 80% intervals on the change (megatrees and carbon only)."
+)
+
+knitr::kable(
+  wide,
+  format = "html",
+  escape = FALSE,
+  caption = forest_cap,
+  align = c("l", "l", rep("r", 4)),
+  table.attr = "class='table table-striped table-hover' style='max-width:100%;font-size:0.95rem;'"
+)
+```
+
+To refresh the forest PDF: `Rscript Scripts/Nature_Revision2/03_forest_allprimary_p05_vs_p0.R`.
+
+------------------------------------------------------------------------
+
+## Environmental modified figure — primary start (*P* ≈ 0.1 vs *P* = 1)
+
+This matches the **AllPrimary** column of **`environmental_by_starting_3landscapes.pdf`** (modified geom style from `02_build_modified_final_figures.R`, run `ACTIVE_RUN=environmental_by_starting`).
+
+```{r env-figure-embed, results="asis"}
+env_pdf_abs <- file.path(NR2_ROOT, "Figures", "NR2", "GeomPoint_Modified", "environmental_by_starting_3landscapes.pdf")
+env_href <- "../../../Figures/NR2/GeomPoint_Modified/environmental_by_starting_3landscapes.pdf"
+if (file.exists(env_pdf_abs)) {
+  knitr::asis_output(paste0(
+    "<div style=\"border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;margin:1rem 0;\">",
+    "<embed src=\"", env_href, "\" type=\"application/pdf\" width=\"100%\" height=\"720px\" />",
+    "</div>",
+    "<p><a href=\"", env_href, "\">Open PDF</a> (relative to this report)</p>"
+  ))
+} else {
+  knitr::asis_output(paste0("<p><strong>PDF not found:</strong> ", env_pdf_abs, "</p>"))
+}
+```
+
+### Extracted outcomes — min / max / range by starting landscape
+
+```{r env-extract-tables, results="asis"}
+setwd(NR2_ROOT)
+source(file.path(NR2_ROOT, "Scripts", "Nature_Revision2", "primary_change_p_env_extract.R"))
+L <- build_primary_p_change_env_tables()
+
+html <- c(
+  "<p><strong>How to read the tables.</strong> Each block is one <strong>starting landscape</strong>. Under <em>P</em> ≈ 0.1 and <em>P</em> = 1.0 you get: composition of the global min-mean portfolio, its mean (and [lo, hi] for megatrees/carbon), then the same for the max-mean portfolio. The Δ row is the change in (max − min) from the low- to the high-<em>P</em> band, with a parenthetical (lower / upper) pair when model bounds allow. The last row is median national timber (Mm³) in those bands.</p>"
+)
+for (sec in L$sections) {
+  html <- c(
+    html,
+    paste0("<h4 style=\"margin-top:2rem;\">", sec$title, "</h4>"),
+    paste0("<p style=\"font-size:0.9rem;color:#555;margin:0.35rem 0 0.75rem 0;\">", sec$subtitle, "</p>"),
+    as.character(knitr::kable(
+      sec$wide,
+      format = "html",
+      escape = FALSE,
+      caption = paste0("Environmental outcomes — ", sec$title),
+      align = c("l", rep("r", 4)),
+      table.attr = "class='table table-striped table-hover' style='max-width:100%;font-size:0.88rem;'"
+    ))
+  )
+}
+html <- c(html, paste0("<p style='font-size:0.88rem;color:#444;margin-top:1.25rem;'>", L$notes, "</p>"))
+knitr::asis_output(paste(html, collapse = "\n"))
+```
+
+To rebuild the environmental PDF, set `ACTIVE_RUN=environmental_by_starting` and run `Scripts/Nature_Revision2/02_build_modified_final_figures.R` from this project root.

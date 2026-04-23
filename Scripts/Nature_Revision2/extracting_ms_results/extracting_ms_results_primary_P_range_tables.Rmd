@@ -1,0 +1,89 @@
+---
+title: "Extracting MS results — primary *P* env tables (range rows + between-*P* divider)"
+subtitle: "Companion to `extracting_ms_results.Rmd` in this folder: **Range (max − min)** after each production-target block, then a divider before **Δ (P=1 − P≈0.1)** and **Median timber**."
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    self_contained: true
+---
+
+Saved as **`Scripts/Nature_Revision2/extracting_ms_results/extracting_ms_results_primary_P_range_tables.Rmd`**.  
+Knitted output: **`extracting_ms_results_primary_P_range_tables.html`** (same folder).
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+suppressPackageStartupMessages({
+  library(knitr)
+})
+
+helper_candidates <- unique(c(
+  tryCatch(file.path(knitr::current_input(dir = TRUE), "nr2_rmd_project_root.R"), error = function(e) NA_character_),
+  file.path(getwd(), "nr2_rmd_project_root.R"),
+  file.path(getwd(), "extracting_ms_results", "nr2_rmd_project_root.R"),
+  file.path(getwd(), "Scripts", "Nature_Revision2", "extracting_ms_results", "nr2_rmd_project_root.R"),
+  normalizePath(file.path(getwd(), "..", "..", "Scripts", "Nature_Revision2", "extracting_ms_results", "nr2_rmd_project_root.R"), mustWork = FALSE)
+))
+helper_candidates <- helper_candidates[!is.na(helper_candidates) & nzchar(helper_candidates)]
+helper_hit <- helper_candidates[file.exists(helper_candidates)][1L]
+if (is.na(helper_hit)) {
+  stop(
+    "Could not find nr2_rmd_project_root.R. Tried:\n",
+    paste(" -", helper_candidates, collapse = "\n"),
+    call. = FALSE
+  )
+}
+source(helper_hit, local = FALSE)
+
+root_dir <- nr2_project_root()
+knitr::opts_knit$set(root.dir = root_dir)
+```
+
+Tables come from `build_primary_p_change_env_tables()` in `Scripts/Nature_Revision2/primary_change_p_env_extract.R` (working directory = project root).
+
+```{r env-tables, results='asis'}
+setwd(root_dir)
+source(file.path(root_dir, "Scripts", "Nature_Revision2", "primary_change_p_env_extract.R"))
+L <- build_primary_p_change_env_tables()
+
+out <- character()
+for (i in seq_along(L$sections)) {
+  sec <- L$sections[[i]]
+  out <- c(
+    out,
+    paste0("<h2>", sec$title, "</h2>"),
+    paste0("<p><em>", sec$subtitle, "</em></p>"),
+    as.character(
+      knitr::kable(
+        sec$wide,
+        format = "html",
+        escape = FALSE,
+        caption = paste0(
+          "Starting landscape ", i, ": within each *P* band, rows end with **Range (max − min)**; ",
+          "then **Between production targets**, **Δ (max − min), P=1 − P≈0.1**, and **Median timber**."
+        )
+      )
+    )
+  )
+}
+knitr::asis_output(paste(out, collapse = "\n\n"))
+```
+
+### Notes (table conventions)
+
+```{r notes}
+cat(L$notes, sep = "\n\n")
+```
+
+### AllPrimary wide table (convenience)
+
+```{r allprimary-only}
+L$minmax_wide
+```
+
+### Scenario indices (all landscapes)
+
+```{r detail}
+knitr::kable(L$minmax_detail_all, format = "html", escape = FALSE)
+```

@@ -1,5 +1,6 @@
 # ----------------------------------------------------------------------------
 # Extract tables for "Changing P in Primary Landscapes" (Rmd / manuscript).
+# Consumed by Scripts/Nature_Revision2/extracting_ms_results/extracting_ms_results*.Rmd
 # Mirrors data definitions in 02_build_modified_final_figures.R:
 #   environmental_by_starting — AllPrimary column, loser birds/beetles,
 #   megatrees 50 m with 95% intervals, cumulative C stock diff vs baseline
