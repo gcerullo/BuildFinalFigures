@@ -1,3 +1,11 @@
+# ----------------------------------------------------------------------------
+# Nature Revision 2 — petal plots (original Figure 2 exploration)
+#
+# This was my working script for the manuscript petal layout; I keep it for transparency even though I now lean on the replicable version for exact rebuilds.
+# Inputs: Inputs/FixedScenarioParams.R, Inputs/MasterAllScenarios.rds, and the Master* RDS summaries under Data/ (birds, dung beetles, carbon, megatrees, financial).
+# Outputs: PDF figures to disk from ggplot/cowplot (paths set in-script under this project).
+# ----------------------------------------------------------------------------
+
 rm(list = ls())
 
 #This code develops Figure 2 in the main manuscript. Note that this code is provided

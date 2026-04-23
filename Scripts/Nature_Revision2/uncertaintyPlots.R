@@ -1,3 +1,11 @@
+# ----------------------------------------------------------------------------
+# Nature Revision 2 — species-level uncertainty plots (archived scratch)
+#
+# Most of this file is commented out now; I left it here because it records how I was thinking about species-level error versus group medians.
+# Inputs: when active, would read species-level RDS under Data/ (see commented readRDS lines).
+# Outputs: none while commented; previously used for exploratory ggplot PDFs.
+# ----------------------------------------------------------------------------
+
 # #uncertainty plots #####
 # #lets develop these at the species-level - plotting the error of taking the median across species grp
 # #conveys differences in per-species reponses rather than showing error - and it becomes unweildy. 

@@ -1,3 +1,11 @@
+# ----------------------------------------------------------------------------
+# Nature Revision 2 — petal plots (clean replicable build)
+#
+# I refactored 01_PetalPlots.R so I could freeze paths, carbon-stream options, and exports in one place for NR2.
+# Inputs: Inputs/FixedScenarioParams.R; Data/NR2/*.rds (scenarios, birds, dung beetles, carbon, megatrees, financial).
+# Outputs: PDFs under Figures/NR2/PetalPlots (export_dir in PATHS).
+# ----------------------------------------------------------------------------
+
 ## Reproducible version of 01_PetalPlots.R
 ## Keeps output intent unchanged with cleaner structure.
 
@@ -16,7 +24,7 @@ PATHS <- list(
   carbon = "Data/NR2/MasterCarbonPerformance_withuncertainty.rds",
   megatrees = "Data/NR2/MasterMegatreePerformance_with_uncertainty.rds",
   profits = "Data/NR2/MasterFinancialPerformance.rds",
-  export_dir = "Figures/PetalPlots"
+  export_dir = "Figures/NR2/PetalPlots"
 )
 
 # Configure carbon stream once for reproducible variant runs.

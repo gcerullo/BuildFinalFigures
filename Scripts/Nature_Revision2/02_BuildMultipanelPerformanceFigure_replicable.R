@@ -1,3 +1,11 @@
+# ----------------------------------------------------------------------------
+# Nature Revision 2 — multipanel geom figure (replicable Figure 2-style)
+#
+# This is the script I actually edit when I change which starting landscapes, carbon stream, or financial sensitivity shows up in the main performance panels.
+# Inputs: Inputs/FixedScenarioParams.R; NR2 RDS tables and MasterAllScenarios as listed in PATHS near the top of the file.
+# Outputs: PDFs under Figures/NR2/GeomPoint_Replicable.
+# ----------------------------------------------------------------------------
+
 ## Reproducible, single-figure workflow for Figure 2-style panels
 ## -----------------------------------------------------------------
 ## QUICK START
@@ -5,7 +13,7 @@
 ## 2) Run:
 ##      Rscript "Scripts/Nature_Revision_2/02_BuildMultipanelPerformanceFigure_replicable.R"
 ## 3) Output PDF is written to:
-##      Figures/GeomPointFigs/manuscript_figures
+##      Figures/NR2/GeomPoint_Replicable
 ##
 ## WHAT YOU CAN CUSTOMIZE
 ## - Which starting landscapes are shown (via figure_id -> FIGURE_PRESETS)
@@ -29,10 +37,11 @@ PATHS <- list(
   birds_iucn = "Data/NR2/OG_baseline_birdsIUCN.rds",
   dung_beetles = "Data/NR2/MasterDBPerformance_fastPilot.rds",
   carbon = "Data/NR2/carbon_outcomes__all_trajectories.rds",
+  carbon_stock_diff = "Data/NR2/stock_diff_vs_baseline__windowed__all_traj.rds",
   megatrees = "Data/full_nature_scenario_megatree_performance_all_thresholds.rds",
   financial = "Data/NR2/MasterFinancialPerformance__Sensitivity25pctMoneyParams_LONG.rds",
   all_scenarios = "Inputs/MasterAllScenarios.rds",
-  export_dir = "Figures/GeomPointFigs/manuscript_figures"
+  export_dir = "Figures/NR2/GeomPoint_Replicable"
 )
 dir.create(PATHS$export_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -41,7 +50,12 @@ SCALE <- list(
   hundred_million = 1e8,
   width = 8.27,
   height = 11.69,
-  text_size = 13
+  text_size = 13,
+  ## Extra vertical space when bivariate legends are appended (inches).
+  legend_bivariate_extra_height = 1.85,
+  legend_rel_height = 0.28,
+  bi_legend_axis_size = 11.8,
+  bi_legend_header_size = 11
 )
 
 ## FIGURE_PRESETS controls scenario sets ("starting landscapes + rule set").
@@ -86,6 +100,7 @@ BASE_RUN_SETTINGS <- list(
     cashflow_variant = c("baseline", "plus25", "minus25"),
     carbon_slope_variant = c("0.8", "1.0", "1.2"),
     carbon_discount_rate = c("2%", "4%", "6%"),
+    carbon_window_year_end = c(20, 40, 60),
     megatree_height_filt = c("45", "50", "55")
   ),
   sensitivity_center = "baseline",
@@ -95,6 +110,7 @@ BASE_RUN_SETTINGS <- list(
     carbon_discount_rate = c("2%", "4%", "6%"),
     carbon_slope_variant = c("0.8", "1.0", "1.2"),
     cashflow_variant = c("baseline", "plus25", "minus25"),
+    carbon_window_year_end = c(20, 40, 60),
     economic_discount_rate = c("2%", "4%", "6%"),
     megatree_height_filt = c("45", "50", "55"),
     bird_group = c("loser", "Y", "N", "intermediate1L", "intermediate2L", "winner"),
@@ -108,6 +124,7 @@ BASE_RUN_SETTINGS <- list(
   carbon_stream = "scc",
   carbon_discount_rate = "4%",
   carbon_slope_variant = "1",
+  carbon_window_year_end = 60,
   megatree_height_filt = "50",
   variable_scc_discount = NULL,
   output_pdf_name = NULL
@@ -143,9 +160,9 @@ merge_run_settings <- function(base, override) {
 # - run6_birds_various_cats
 # - run7_beetles_various_cats
 # - run8_various_canopy_thresholds
-# - run9_stock_years  
+# - run9_delta_stock  
 # - run10_scc_slope_variants
-# - run11_stock_year_slope_variants
+# - run11_delta_stock_slope_variants
 #
 # OUTPUT PDF NAME:
 # Each run already includes a direct output filename in RUN_LIBRARY$output_pdf_name.
@@ -203,7 +220,6 @@ RUN_LIBRARY <- list(
   run3_alternative_dr_scc = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("carbon"),
-    include_legend = FALSE,
     errorbar_mode = "model_ci",
     compare_mode = TRUE,
     compare_rows_by = c("carbon_discount_rate"),
@@ -216,7 +232,6 @@ RUN_LIBRARY <- list(
   run4_alternative_dr_harvest_profs = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("profits"),
-    include_legend = FALSE,
     errorbar_mode = "sensitivity_range",
     sensitivity_field = "cashflow_variant",
     sensitivity_values = list(cashflow_variant = c("minus25", "baseline", "plus25")),
@@ -246,7 +261,6 @@ RUN_LIBRARY <- list(
   run6_birds_various_cats = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("birds"),
-    include_legend = FALSE,
     errorbar_mode = "none",
     compare_mode = TRUE,
     compare_rows_by = c("bird_group"),
@@ -256,7 +270,6 @@ RUN_LIBRARY <- list(
   run7_beetles_various_cats = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("dung_beetles"),
-    include_legend = FALSE,
     errorbar_mode = "none",
     compare_mode = TRUE,
     compare_rows_by = c("beetle_group"),
@@ -266,7 +279,6 @@ RUN_LIBRARY <- list(
   run8_various_canopy_thresholds = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("megatrees"),
-    include_legend = FALSE,
     errorbar_mode = "model_ci",
     uncertainty_level = "80",
     compare_mode = TRUE,
@@ -275,20 +287,19 @@ RUN_LIBRARY <- list(
     megatree_height_filt = "50",
     output_pdf_name = "various_canopy_thresholds.pdf"
   ),
-  run9_stock_years = list(
+  run9_delta_stock = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("carbon"),
-    include_legend = FALSE,
     errorbar_mode = "model_ci",
-    carbon_stream = "stock_year",
+    carbon_stream = "stock_diff_vs_baseline",
     carbon_discount_rate = NULL,
+    carbon_window_year_end = 60,
     carbon_slope_variant = "1",
-    output_pdf_name = "stock_years.pdf"
+    output_pdf_name = "delta_stock.pdf"
   ),
   run10_scc_slope_variants = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("carbon"),
-    include_legend = FALSE,
     carbon_errorbar_mode = "model_ci",
     uncertainty_level = "80",
     compare_mode = TRUE,
@@ -299,19 +310,32 @@ RUN_LIBRARY <- list(
     carbon_slope_variant = "1",
     output_pdf_name = "scc_slope_variants.pdf"
   ),
-  run11_stock_year_slope_variants = list(
+  run11_delta_stock_slope_variants = list(
     figure_id = "fig2_d",
     outcomes_to_plot = c("carbon"),
-    include_legend = FALSE,
     carbon_errorbar_mode = "model_ci",
     uncertainty_level = "80",
     compare_mode = TRUE,
     compare_rows_by = c("carbon_slope_variant"),
     compare_values = list(carbon_slope_variant = c("0.75", "1", "1.2")),
-    carbon_stream = "stock_year",
+    carbon_stream = "stock_diff_vs_baseline",
     carbon_discount_rate = NULL,
+    carbon_window_year_end = 60,
     carbon_slope_variant = "1",
-    output_pdf_name = "stock_year_slope_variants.pdf"
+    output_pdf_name = "delta_stock_slope_variants.pdf"
+  ),
+  sum_stock_slope_variants = list(
+    figure_id = "fig2_d",
+    outcomes_to_plot = c("carbon"),
+    errorbar_mode = "model_ci",
+    carbon_errorbar_mode = "model_ci",
+    uncertainty_level = "80",
+    carbon_stream = "stock_year_slope_facets",
+    carbon_discount_rate = "4%",
+    carbon_slope_variant = NULL,
+    carbon_slope_facet_values = c("0.75", "1", "1.2"),
+    carbon_window_year_end = NULL,
+    output_pdf_name = "sum_stock_slope_variants.pdf"
   )
 )
 
@@ -508,7 +532,13 @@ add_plantation_type <- function(df) {
     mutate(shape_class = ifelse(propPlant > 0, "Cross", "Point"))
 }
 
-get_carbon_spec <- function(stream = c("scc", "stock_year")) {
+stock_year_ci_cols <- list(
+  `95` = c("lwr_cum_stock_year_95", "upr_cum_stock_year_95"),
+  `80` = c("lwr_cum_stock_year_80", "upr_cum_stock_year_80"),
+  `50` = c("lwr_cum_stock_year_50", "upr_cum_stock_year_50")
+)
+
+get_carbon_spec <- function(stream = c("scc", "stock_year", "stock_diff_vs_baseline", "stock_year_slope_facets")) {
   stream <- match.arg(stream)
   if (stream == "scc") {
     return(list(
@@ -521,24 +551,39 @@ get_carbon_spec <- function(stream = c("scc", "stock_year")) {
       )
     ))
   }
+  if (stream == "stock_diff_vs_baseline") {
+    return(list(
+      metric = "mean_cum_stock_diff_vs_baseline",
+      ylab = "\u0394 Cumulative C stock\nvs baseline (Mg C ha\u207B\u00B9 yr\u207B\u00B9)",
+      divisor = SCALE$bil,
+      ci_cols = list(
+        `95` = c("lwr95_cum_stock_diff_vs_baseline", "upr95_cum_stock_diff_vs_baseline"),
+        `80` = c("lwr80_cum_stock_diff_vs_baseline", "upr80_cum_stock_diff_vs_baseline")
+      )
+    ))
+  }
+  if (stream == "stock_year_slope_facets") {
+    return(list(
+      metric = "mean_cum_stock_year",
+      ylab = "Cumulative carbon stock\n(billion C stock-yr)",
+      divisor = SCALE$bil,
+      ci_cols = stock_year_ci_cols
+    ))
+  }
   list(
     metric = "mean_cum_stock_year",
     ylab = "Carbon Stock Years\n(billion)",
     divisor = SCALE$bil,
-    ci_cols = list(
-      `95` = c("lwr_cum_stock_year_95", "upr_cum_stock_year_95"),
-      `80` = c("lwr_cum_stock_year_80", "upr_cum_stock_year_80"),
-      `50` = c("lwr_cum_stock_year_50", "upr_cum_stock_year_50")
-    )
+    ci_cols = stock_year_ci_cols
   )
 }
 
-filter_carbon_variant <- function(df, discount_rate = NULL, slope_variant = NULL) {
-  out <- df %>%
-    mutate(
-      discount_rate = as.character(.data$discount_rate),
-      twice_logged_slope_trajectory = as.character(.data$twice_logged_slope_trajectory)
-    )
+filter_carbon_variant <- function(df, discount_rate = NULL, slope_variant = NULL, window_year_end = NULL) {
+  out <- as.data.frame(df)
+  if (!("discount_rate" %in% names(out))) out$discount_rate <- NA_character_
+  if (!("twice_logged_slope_trajectory" %in% names(out))) out$twice_logged_slope_trajectory <- NA_character_
+  out$discount_rate <- as.character(out$discount_rate)
+  out$twice_logged_slope_trajectory <- as.character(out$twice_logged_slope_trajectory)
 
   if (!is.null(discount_rate)) {
     discount_vals <- as.character(discount_rate)
@@ -553,6 +598,10 @@ filter_carbon_variant <- function(df, discount_rate = NULL, slope_variant = NULL
     } else {
       out <- out %>% filter(.data$twice_logged_slope_trajectory %in% slope_vals)
     }
+  }
+  if (!is.null(window_year_end) && ("window_year_end" %in% names(out))) {
+    window_vals <- as.numeric(window_year_end)
+    out <- out %>% filter(as.numeric(.data$window_year_end) %in% window_vals)
   }
   out
 }
@@ -675,6 +724,7 @@ format_row_label <- function(row_df, i) {
   label_map <- c(
     carbon_slope_variant = "Slope variant",
     carbon_discount_rate = "Carbon discount rate",
+    carbon_window_year_end = "Window end year",
     economic_discount_rate = "Economic discount rate",
     megatree_height_filt = "Megatree height filter"
   )
@@ -691,6 +741,9 @@ get_setting_values <- function(settings, field) {
       field %in% settings$compare_rows_by &&
       !is.null(settings$compare_values[[field]])) {
     return(settings$compare_values[[field]])
+  }
+  if (identical(field, "carbon_slope_variant") && !is.null(settings$carbon_slope_facet_values)) {
+    return(settings$carbon_slope_facet_values)
   }
   settings[[field]]
 }
@@ -744,11 +797,13 @@ compute_y_limits_map <- function(inputs, settings, preset) {
     errorbar_mode <- settings$errorbar_mode %||% "none"
     carbon_errorbar_mode <- settings$carbon_errorbar_mode %||% errorbar_mode
     carbon_spec <- get_carbon_spec(settings$carbon_stream)
-    C <- inputs$carbon %>%
+    carbon_input <- if (identical(settings$carbon_stream, "stock_diff_vs_baseline")) inputs$carbon_stock_diff else inputs$carbon
+    C <- carbon_input %>%
       filter(scenarioName %in% scenario_filter) %>%
       filter_carbon_variant(
         discount_rate = get_setting_values(settings, "carbon_discount_rate"),
-        slope_variant = get_setting_values(settings, "carbon_slope_variant")
+        slope_variant = get_setting_values(settings, "carbon_slope_variant"),
+        window_year_end = get_setting_values(settings, "carbon_window_year_end")
       ) %>%
       mutate(plot_value = .data[[carbon_spec$metric]] / carbon_spec$divisor)
     if (identical(carbon_errorbar_mode, "model_ci")) {
@@ -806,7 +861,7 @@ compute_y_limits_map <- function(inputs, settings, preset) {
   limits
 }
 
-master_plot_fun <- function(df, y_col, ylab_text, scenario_filter, errorbar_mode = "none", uncertainty_style = "bars", ymin_col = NULL, ymax_col = NULL, errorbar_alpha = 0.28, errorbar_linewidth = 0.25, y_limits = NULL) {
+master_plot_fun <- function(df, y_col, ylab_text, scenario_filter, errorbar_mode = "none", uncertainty_style = "bars", ymin_col = NULL, ymax_col = NULL, errorbar_alpha = 0.28, errorbar_linewidth = 0.25, y_limits = NULL, show_x_axis_title = FALSE, facet_layout = "scenario_wrap") {
   base_df <- df %>%
     mutate(
       scenarioName = fct_relevel(scenarioName, scenario_filter),
@@ -840,6 +895,7 @@ master_plot_fun <- function(df, y_col, ylab_text, scenario_filter, errorbar_mode
     }
   }
 
+  facet_lay <- facet_layout %||% "scenario_wrap"
   p_final <- p +
     geom_point(
       aes(
@@ -855,16 +911,28 @@ master_plot_fun <- function(df, y_col, ylab_text, scenario_filter, errorbar_mode
     scale_colour_identity() +
     scale_shape_manual(values = c("Point" = 19, "Cross" = 2)) +
     xlim(0, 1) +
-    xlab(NULL) +
-    ylab(ylab_text) +
-    facet_wrap(~scenarioName, ncol = 4) +
+    xlab(if (isTRUE(show_x_axis_title)) "Production target (P)" else NULL) +
+    ylab(ylab_text)
+  if (identical(facet_lay, "scenario_x_slope_grid")) {
+    p_final <- p_final + facet_grid(rows = vars(slope_facet), cols = vars(scenarioName), switch = "y")
+  } else {
+    p_final <- p_final + facet_wrap(~scenarioName, ncol = 4)
+  }
+  p_final <- p_final +
     theme_bw(base_size = SCALE$text_size) +
     theme(
       legend.position = "none",
       panel.grid.major = element_line(color = "grey90"),
-      panel.grid.minor = element_blank(),
-      strip.text = element_blank()
+      panel.grid.minor = element_blank()
     )
+  if (identical(facet_lay, "scenario_x_slope_grid")) {
+    p_final <- p_final + theme(
+      strip.text.x = element_blank(),
+      strip.text.y = element_text(face = "bold", size = max(8.5, SCALE$text_size - 3.5))
+    )
+  } else {
+    p_final <- p_final + theme(strip.text = element_blank())
+  }
 
   if (!is.null(y_limits) && length(y_limits) == 2 && all(is.finite(y_limits))) {
     p_final <- p_final + coord_cartesian(ylim = y_limits)
@@ -872,10 +940,13 @@ master_plot_fun <- function(df, y_col, ylab_text, scenario_filter, errorbar_mode
   p_final
 }
 
-build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, protection, all_legend, settings, preset, y_limits_map = NULL) {
+build_main_figure <- function(birds, dung_beetles, megatrees, carbon, carbon_stock_diff, profits, protection, all_legend, settings, preset, y_limits_map = NULL, add_bottom_x_axis_title = TRUE) {
   carbon_spec <- get_carbon_spec(settings$carbon_stream)
   scenario_filter <- preset$scenario_filter
   selected_outcomes <- unique(settings$outcomes_to_plot)
+  panel_stack_order <- c("birds", "dung_beetles", "megatrees", "carbon", "profits", "protection")
+  last_x_outcome <- tail(intersect(panel_stack_order, selected_outcomes), 1L)
+  show_x <- function(outcome) isTRUE(add_bottom_x_axis_title) && length(last_x_outcome) == 1L && identical(outcome, last_x_outcome)
   panels <- list()
   errorbar_mode <- settings$errorbar_mode %||% "none"
   carbon_errorbar_mode <- settings$carbon_errorbar_mode %||% errorbar_mode
@@ -894,7 +965,8 @@ build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, p
         ylab_text = "Median Relative\nOccupancy",
         scenario_filter = scenario_filter,
         errorbar_mode = "none",
-        y_limits = y_limits_map$birds
+        y_limits = y_limits_map$birds,
+        show_x_axis_title = show_x("birds")
       )
     ))
   }
@@ -910,7 +982,8 @@ build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, p
         ylab_text = "Median Relative\nAbundance",
         scenario_filter = scenario_filter,
         errorbar_mode = "none",
-        y_limits = y_limits_map$dung_beetles
+        y_limits = y_limits_map$dung_beetles,
+        show_x_axis_title = show_x("dung_beetles")
       )
     ))
   }
@@ -958,17 +1031,30 @@ build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, p
         ymax_col = if ("plot_ymax" %in% names(M)) "plot_ymax" else NULL,
         errorbar_alpha = 0.45,
         errorbar_linewidth = 0.35,
-        y_limits = y_limits_map$megatrees
+        y_limits = y_limits_map$megatrees,
+        show_x_axis_title = show_x("megatrees")
       )
     ))
   }
 
   if ("carbon" %in% selected_outcomes) {
-    C <- carbon %>%
+    carbon_input <- if (identical(settings$carbon_stream, "stock_diff_vs_baseline")) carbon_stock_diff else carbon
+    C <- carbon_input %>%
       filter(scenarioName %in% scenario_filter) %>%
-      filter_carbon_variant(discount_rate = settings$carbon_discount_rate, slope_variant = settings$carbon_slope_variant)
+      filter_carbon_variant(
+        discount_rate = get_setting_values(settings, "carbon_discount_rate"),
+        slope_variant = get_setting_values(settings, "carbon_slope_variant"),
+        window_year_end = get_setting_values(settings, "carbon_window_year_end")
+      )
     if (nrow(C) == 0) stop("No data for carbon panel with current RUN_SETTINGS.")
     C <- C %>% mutate(plot_value = .data[[carbon_spec$metric]] / carbon_spec$divisor)
+
+    facet_layout_carbon <- settings$carbon_facet_layout %||% "scenario_wrap"
+    if (identical(settings$carbon_stream, "stock_year_slope_facets")) {
+      sfv <- settings$carbon_slope_facet_values %||% c("0.75", "1", "1.2")
+      C <- C %>% mutate(slope_facet = factor(as.character(twice_logged_slope_trajectory), levels = as.character(sfv)))
+      facet_layout_carbon <- "scenario_x_slope_grid"
+    }
 
     if (identical(carbon_errorbar_mode, "model_ci")) {
       ci_key <- as.character(settings$uncertainty_level %||% "80")
@@ -995,7 +1081,9 @@ build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, p
         uncertainty_style = uncertainty_style,
         ymin_col = if ("plot_ymin" %in% names(C)) "plot_ymin" else NULL,
         ymax_col = if ("plot_ymax" %in% names(C)) "plot_ymax" else NULL,
-        y_limits = y_limits_map$carbon
+        y_limits = y_limits_map$carbon,
+        show_x_axis_title = show_x("carbon"),
+        facet_layout = facet_layout_carbon
       )
     ))
   }
@@ -1028,7 +1116,8 @@ build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, p
         uncertainty_style = uncertainty_style,
         ymin_col = if ("plot_ymin" %in% names(P)) "plot_ymin" else NULL,
         ymax_col = if ("plot_ymax" %in% names(P)) "plot_ymax" else NULL,
-        y_limits = y_limits_map$profits
+        y_limits = y_limits_map$profits,
+        show_x_axis_title = show_x("profits")
       )
     ))
   }
@@ -1057,7 +1146,8 @@ build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, p
         uncertainty_style = uncertainty_style,
         ymin_col = if ("plot_ymin" %in% names(PC)) "plot_ymin" else NULL,
         ymax_col = if ("plot_ymax" %in% names(PC)) "plot_ymax" else NULL,
-        y_limits = y_limits_map$protection
+        y_limits = y_limits_map$protection,
+        show_x_axis_title = show_x("protection")
       )
     ))
   }
@@ -1065,7 +1155,8 @@ build_main_figure <- function(birds, dung_beetles, megatrees, carbon, profits, p
   if (length(panels) == 0) stop("RUN_SETTINGS$outcomes_to_plot did not select any panels.")
   main <- plot_grid(plotlist = panels, ncol = 1)
   if (isTRUE(settings$include_legend)) {
-    return(plot_grid(main, all_legend, nrow = 2, rel_heights = c(1, 0.2)))
+    leg_h <- settings$legend_rel_height %||% SCALE$legend_rel_height %||% 0.28
+    return(plot_grid(main, all_legend, nrow = 2, rel_heights = c(1, leg_h)))
   }
   main
 }
@@ -1078,7 +1169,7 @@ validate_run_settings <- function(settings, run_label) {
   if (length(unknown_outcomes) > 0) {
     stop("Unknown outcomes in RUN_SETTINGS$outcomes_to_plot: ", paste(unknown_outcomes, collapse = ", "))
   }
-  valid_compare_fields <- c("carbon_discount_rate", "carbon_slope_variant", "cashflow_variant", "economic_discount_rate", "economic_cost_type", "carbon_stream", "bird_group", "beetle_group", "megatree_height_filt")
+  valid_compare_fields <- c("carbon_discount_rate", "carbon_slope_variant", "carbon_window_year_end", "cashflow_variant", "economic_discount_rate", "economic_cost_type", "carbon_stream", "bird_group", "beetle_group", "megatree_height_filt")
   if (isTRUE(settings$compare_mode)) {
     bad_fields <- setdiff(settings$compare_rows_by, valid_compare_fields)
     if (length(bad_fields) > 0) {
@@ -1146,14 +1237,44 @@ propOGcomp <- prop_OG_fun(scenario_composition, habInStart) %>%
   mutate(index = as.character(index), production_target = as.numeric(production_target))
 
 COL <- "BlueOr"
+
+## Bivariate colour keys aligned with the three scenario columns (axis labels only).
+build_bivariate_legend_footer <- function(pal = COL, dim_val = 4L) {
+  ax <- SCALE$bi_legend_axis_size %||% 11.5
+  primary_legend <- bi_legend(
+    pal = pal,
+    dim = dim_val,
+    xlab = "Old-growth share",
+    ylab = "Once-logged share",
+    size = ax
+  )
+  onceL_legend <- bi_legend(
+    pal = pal,
+    dim = dim_val,
+    xlab = "Old-growth\n(relative)",
+    ylab = "Once-logged\n(relative)",
+    size = ax
+  )
+  twiceL_legend <- bi_legend(
+    pal = pal,
+    dim = dim_val,
+    xlab = "Old-growth\n(relative)",
+    ylab = "Twice-logged\n(relative)",
+    size = ax
+  )
+  plot_grid(
+    primary_legend, onceL_legend, twiceL_legend,
+    ncol = 3L,
+    align = "h",
+    axis = "tblr",
+    rel_widths = c(1, 1, 1)
+  )
+}
+
 cols <- data.frame(bi_pal(COL, dim = 4, preview = FALSE))
 colnames(cols) <- "hex"
 cols <- cols %>% mutate(bi_class = rownames(.))
-
-primary_legend <- bi_legend(pal = COL, dim = 4, xlab = "Old-growth", ylab = "Once-logged", size = SCALE$text_size)
-onceL_legend <- bi_legend(pal = COL, dim = 4, xlab = "Remaining old-growth", ylab = "Remaining once-logged", size = SCALE$text_size)
-twiceL_legend <- bi_legend(pal = COL, dim = 4, xlab = "Remaining old-growth", ylab = "Remaining twice-logged", size = SCALE$text_size)
-all_legend <- plot_grid(primary_legend, onceL_legend, twiceL_legend, ncol = 3)
+all_legend <- build_bivariate_legend_footer(pal = COL, dim_val = 4L)
 
 load_inputs_for_settings <- function(settings) {
   selected_outcomes <- settings$outcomes_to_plot
@@ -1175,6 +1296,7 @@ load_inputs_for_settings <- function(settings) {
   birds <- NULL
   dungBeetles <- NULL
   carbon <- NULL
+  carbon_stock_diff <- NULL
   megatrees <- NULL
   profits <- NULL
   protection <- NULL
@@ -1196,14 +1318,26 @@ load_inputs_for_settings <- function(settings) {
   }
 
   if (need_carbon) {
-    carbon <- load_carbon_data(PATHS$carbon) %>%
-      mutate(index = as.character(index), production_target = as.numeric(production_target)) %>%
-      as.data.table() %>%
-      prep_styled()
-    required_carbon_cols <- c("TOTcarbon_ACD_mean", "mean_cum_stock_year", "discount_rate", "twice_logged_slope_trajectory")
-    missing_cols <- setdiff(required_carbon_cols, names(carbon))
-    if (length(missing_cols) > 0) {
-      stop("Carbon table is missing required columns: ", paste(missing_cols, collapse = ", "))
+    if (identical(settings$carbon_stream, "stock_diff_vs_baseline")) {
+      carbon_stock_diff <- load_carbon_data(PATHS$carbon_stock_diff) %>%
+        mutate(index = as.character(index), production_target = as.numeric(production_target)) %>%
+        as.data.table() %>%
+        prep_styled()
+      required_carbon_cols <- c("mean_cum_stock_diff_vs_baseline", "window_year_end", "twice_logged_slope_trajectory")
+      missing_cols <- setdiff(required_carbon_cols, names(carbon_stock_diff))
+      if (length(missing_cols) > 0) {
+        stop("Delta-stock carbon table is missing required columns: ", paste(missing_cols, collapse = ", "))
+      }
+    } else {
+      carbon <- load_carbon_data(PATHS$carbon) %>%
+        mutate(index = as.character(index), production_target = as.numeric(production_target)) %>%
+        as.data.table() %>%
+        prep_styled()
+      required_carbon_cols <- c("TOTcarbon_ACD_mean", "mean_cum_stock_year", "discount_rate", "twice_logged_slope_trajectory")
+      missing_cols <- setdiff(required_carbon_cols, names(carbon))
+      if (length(missing_cols) > 0) {
+        stop("Carbon table is missing required columns: ", paste(missing_cols, collapse = ", "))
+      }
     }
   }
 
@@ -1253,10 +1387,36 @@ load_inputs_for_settings <- function(settings) {
     birds = birds,
     dung_beetles = dungBeetles,
     carbon = carbon,
+    carbon_stock_diff = carbon_stock_diff,
     megatrees = megatrees,
     profits = profits,
     protection = protection
   )
+}
+
+## Compare-mode row caption: inset top-right for delta-stock rows so it does not
+## collide with the rotated y-axis title (strip-above-plot layout otherwise).
+assemble_compare_row_plot <- function(row_base, row_label, inset_compare_label) {
+  if (isTRUE(inset_compare_label)) {
+    ggdraw(row_base) +
+      draw_label(
+        row_label,
+        x = 0.99,
+        y = 0.91,
+        hjust = 1,
+        vjust = 1,
+        fontface = "bold",
+        size = 9,
+        colour = "grey20"
+      )
+  } else {
+    plot_grid(
+      ggdraw() + draw_label(row_label, x = 0, hjust = 0, fontface = "bold", size = 10),
+      row_base,
+      ncol = 1,
+      rel_heights = c(0.06, 1)
+    )
+  }
 }
 
 render_and_save <- function(settings, run_label) {
@@ -1271,29 +1431,31 @@ render_and_save <- function(settings, run_label) {
     for (i in seq_len(nrow(comparison_grid))) {
       row_settings <- apply_row_settings(settings, comparison_grid, i)
       row_settings$include_legend <- FALSE
+      ## Per-row filters must use this row's scalars, not the full compare_values grid.
+      row_settings_plot <- row_settings
+      row_settings_plot$compare_mode <- FALSE
       row_base <- build_main_figure(
         birds = loaded_inputs$birds,
         dung_beetles = loaded_inputs$dung_beetles,
         megatrees = loaded_inputs$megatrees,
         carbon = loaded_inputs$carbon,
+        carbon_stock_diff = loaded_inputs$carbon_stock_diff,
         profits = loaded_inputs$profits,
         protection = loaded_inputs$protection,
         all_legend = all_legend,
-        settings = row_settings,
+        settings = row_settings_plot,
         preset = selected_preset,
-        y_limits_map = y_limits_map
+        y_limits_map = y_limits_map,
+        add_bottom_x_axis_title = (i == nrow(comparison_grid))
       )
       row_label <- format_row_label(comparison_grid, i)
-      row_plots[[i]] <- plot_grid(
-        ggdraw() + draw_label(row_label, x = 0, hjust = 0, fontface = "bold", size = 10),
-        row_base,
-        ncol = 1,
-        rel_heights = c(0.06, 1)
-      )
+      inset_lbl <- identical(settings$carbon_stream, "stock_diff_vs_baseline")
+      row_plots[[i]] <- assemble_compare_row_plot(row_base, row_label, inset_lbl)
     }
     compare_main <- plot_grid(plotlist = row_plots, ncol = 1)
+    leg_h <- settings$legend_rel_height %||% SCALE$legend_rel_height %||% 0.28
     if (isTRUE(settings$include_legend)) {
-      figure_obj <- plot_grid(compare_main, all_legend, nrow = 2, rel_heights = c(1, 0.2))
+      figure_obj <- plot_grid(compare_main, all_legend, nrow = 2, rel_heights = c(1, leg_h))
     } else {
       figure_obj <- compare_main
     }
@@ -1303,6 +1465,7 @@ render_and_save <- function(settings, run_label) {
       dung_beetles = loaded_inputs$dung_beetles,
       megatrees = loaded_inputs$megatrees,
       carbon = loaded_inputs$carbon,
+      carbon_stock_diff = loaded_inputs$carbon_stock_diff,
       profits = loaded_inputs$profits,
       protection = loaded_inputs$protection,
       all_legend = all_legend,
@@ -1319,12 +1482,21 @@ render_and_save <- function(settings, run_label) {
   }
   out_file <- file.path(PATHS$export_dir, output_pdf_name)
 
+  out_height <- SCALE$height
+  if (identical(settings$carbon_stream, "stock_year_slope_facets")) {
+    nf <- max(1L, length(settings$carbon_slope_facet_values %||% c("0.75", "1", "1.2")))
+    if (nf > 1L) out_height <- out_height + (nf - 1L) * 2.2
+  }
+  if (isTRUE(settings$include_legend)) {
+    out_height <- out_height + (SCALE$legend_bivariate_extra_height %||% 1.85)
+  }
+
   ggsave(
     filename = out_file,
     plot = figure_obj,
     device = "pdf",
     width = SCALE$width,
-    height = SCALE$height,
+    height = out_height,
     units = "in"
   )
   message("Saved [", run_label, "]: ", out_file)
